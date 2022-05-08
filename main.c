@@ -92,6 +92,22 @@ int main()
      		return status;
         } 
         
+        //pj_status_t status;
+        status = pjsua_acc_set_registration(0, PJ_TRUE);
+	if (status != PJ_SUCCESS) 
+	{
+     		pjsua_perror(THIS_FILE, "Error account registration", status);
+     		return status;
+        } 
+        
+	/*pj_status_t status;
+	status = pjsua_acc_set_registration(0, PJ_FALSE);
+	if (status != PJ_SUCCESS) 
+	{
+     		pjsua_perror(THIS_FILE, "Error account deregistration", status);
+     		return status;
+        } */
+        sleep(30);
 	pjsua_destroy();  
 	return 0;	
 }
