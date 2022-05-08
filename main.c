@@ -78,7 +78,7 @@ int main()
 	acc_cfg.cred_info[0].data = pj_str(password);
 	acc_cfg.register_on_acc_add = PJ_FALSE;
  
-	pj_status_t action_status = pjsua_acc_add(&acc_cfg, PJ_TRUE, &acc_id);
+	status = pjsua_acc_add(&acc_cfg, PJ_TRUE, &acc_id);
 	if (status != PJ_SUCCESS) 
 	{
      		pjsua_perror(THIS_FILE, "Error adding account", status);
@@ -86,7 +86,7 @@ int main()
         }  
 
 	status = pjsua_acc_set_online_status(0, PJ_TRUE);
-	if (action_status != PJ_SUCCESS) 
+	if (status != PJ_SUCCESS) 
 	{
      		pjsua_perror(THIS_FILE, "Error modifying account presence", status);
      		return status;
