@@ -5,18 +5,18 @@
 
 #define THIS_FILE "Sip Client"
 
+char server_ip[15];
+char user_name[20];
+char password[30];
+
 int main()
 {
-	/*char server_ip[15];
-	char name_user[20];
-	char password_user[30];
-	
 	printf("Server IP: ");
 	scanf("%s",server_ip);
 	printf("User name: ");
-	scanf("%s",name_user);
-	printf("%s's password: ",name_user);
-	scanf("%s",password_user);*/
+	scanf("%s",user_name);
+	printf("%s's password: ",user_name);
+	scanf("%s",password);
 	
 	pj_status_t status;
 	pjsua_config ua_cfg;
@@ -59,5 +59,39 @@ int main()
      		return status;
         }
         
+        //pj_status_t status;
+	pjsua_acc_config acc_cfg;
+	pjsua_acc_id acc_id;
+	
+	pjsua_acc_config_default(&acc_cfg);
+	char sip_uri[50];
+	snprintf(sip_uri, sizeof(sip_uri), "sip:%s@%s", user_name, server_ip); 
+	char sip[50];
+	snprintf(sip, sizeof(sip), "sip:%s", server_ip); 
+	acc_cfg.id = pj_str(sip_uri);
+	acc_cfg.reg_uri = pj_str(sip);
+	acc_cfg.cred_count = 1;
+	acc_cfg.cred_info[0].realm = pj_str("asterisk");
+	acc_cfg.cred_info[0].scheme = pj_str("digest");
+	acc_cfg.cred_info[0].username = pj_str(user_name);
+	acc_cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
+	acc_cfg.cred_info[0].data = pj_str(password);
+	acc_cfg.register_on_acc_add = PJ_FALSE;
+ 
+	pj_status_t action_status = pjsua_acc_add(&acc_cfg, PJ_TRUE, &acc_id);
+	if (status != PJ_SUCCESS) 
+	{
+     		pjsua_perror(THIS_FILE, "Error adding account", status);
+     		return status;
+        }  
+
+	status = pjsua_acc_set_online_status(0, PJ_TRUE);
+	if (action_status != PJ_SUCCESS) 
+	{
+     		pjsua_perror(THIS_FILE, "Error modifying account presence", status);
+     		return status;
+        } 
+        
+	pjsua_destroy();  
 	return 0;	
 }
