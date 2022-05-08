@@ -74,7 +74,7 @@ int main()
 	acc_cfg.cred_info[0].realm = pj_str("asterisk");
 	acc_cfg.cred_info[0].scheme = pj_str("digest");
 	acc_cfg.cred_info[0].username = pj_str(user_name);
-	acc_cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
+	acc_cfg.cred_info[0].data_type = 0;//PJSIP_CRED_DATA_PLAIN_PASSWD;
 	acc_cfg.cred_info[0].data = pj_str(password);
 	acc_cfg.register_on_acc_add = PJ_FALSE;
  
