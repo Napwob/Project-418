@@ -5,12 +5,22 @@
 
 #define THIS_FILE "Sip Client"
 //MAIN FUNCTIONALITY STUFF
-static void cb_on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata) {
-	pjsua_call_info call_info;
-	pjsua_call_get_info(call_id, &call_info);
-	PJ_LOG(3, (THIS_FILE, "Incoming call from %.*s", (int)call_info.remote_info.slen, call_info.remote_info.ptr));
+static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata) {
+	pjsua_call_info ci;
+	pjsua_call_get_info(call_id, &ci);
+	PJ_LOG(3,(THIS_FILE, "Incoming call from %.*s!!", (int)ci.remote_info.slen, ci.remote_info.ptr));
+	pjsua_call_answer(call_id, 200, NULL, NULL);
 }
 
+static void on_call_media_state(pjsua_call_id call_id)
+{
+	pjsua_call_info ci;
+	pjsua_call_get_info(call_id, &ci);
+	if (ci.media_status == PJSUA_CALL_MEDIA_ACTIVE) {
+		pjsua_conf_connect(ci.conf_slot, 0);
+		pjsua_conf_connect(0, ci.conf_slot);
+	}
+}
 
 
 //INITIALISATION STUFF
@@ -33,7 +43,10 @@ pj_status_t configurate_init_PJSUA()
 	pjsua_logging_config_default(&log_cfg);
 	pjsua_media_config_default(&media_cfg);
 	
-	ua_cfg.cb.on_incoming_call = &cb_on_incoming_call;
+	log_cfg.console_level = 4;
+	
+	ua_cfg.cb.on_incoming_call = &on_incoming_call;
+	ua_cfg.cb.on_call_media_state = &on_call_media_state;
 		
 	status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
 	if (status != PJ_SUCCESS) {
