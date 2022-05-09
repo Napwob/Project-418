@@ -4,12 +4,19 @@
 #include <pjsua-lib/pjsua.h>
 
 #define THIS_FILE "Sip Client"
+//MAIN FUNCTIONALITY STUFF
+static void cb_on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata) {
+	pjsua_call_info call_info;
+	pjsua_call_get_info(call_id, &call_info);
+	PJ_LOG(3, (THIS_FILE, "Incoming call from %.*s", (int)call_info.remote_info.slen, call_info.remote_info.ptr));
+}
 
+
+
+//INITIALISATION STUFF
 pj_status_t configurate_init_PJSUA()
-{
+{	
 	pj_status_t status;
-	pjsua_config ua_cfg;
-	pjsua_logging_config log_cfg;
 	
 	status = pjsua_create();
     	if (status != PJ_SUCCESS) {
@@ -17,10 +24,18 @@ pj_status_t configurate_init_PJSUA()
         	return status;
     	}
     	
+	pjsua_config ua_cfg;
+	pjsua_logging_config log_cfg;
+	pjsua_media_config media_cfg;
+    	
+    	//look for it later
     	pjsua_config_default(&ua_cfg);
 	pjsua_logging_config_default(&log_cfg);
-	status = pjsua_init(&ua_cfg, &log_cfg, NULL);
+	pjsua_media_config_default(&media_cfg);
 	
+	ua_cfg.cb.on_incoming_call = &cb_on_incoming_call;
+		
+	status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
 	if (status != PJ_SUCCESS) {
 		pjsua_perror(THIS_FILE, "Error initializing pjsua", status);
 		return status;
