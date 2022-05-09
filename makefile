@@ -11,7 +11,7 @@ CPPFLAGS= ${CFLAGS}
 all: sip_client
 
 sip_client: main.c
-	$(CC) -o $@ $< $(CPPFLAGS) $(LDFLAGS) $(LDLIBS)
+	$(CC) pjstuff.c -o $@ $< $(CPPFLAGS) $(LDFLAGS) $(LDLIBS)
 
 clean:
 	rm -f main.o sip_client
