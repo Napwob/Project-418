@@ -11,7 +11,13 @@ static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_r
 	pjsua_call_info ci;
 	pjsua_call_get_info(call_id, &ci);
 	printf("Incoming call from %.*s\n", (int)ci.remote_info.slen, ci.remote_info.ptr);
-	pjsua_call_answer(call_id, 200, NULL, NULL);
+	int a;
+	printf("Answer?(1/0): ");
+	scanf("%d",&a);
+	if(a == 1)
+		pjsua_call_answer(call_id, 200, NULL, NULL);
+	else
+		pjsua_call_answer(call_id, 486, NULL, NULL);
 }
 
 static void on_call_media_state(pjsua_call_id call_id)
@@ -29,10 +35,21 @@ pj_status_t call_someone(char* server_ip)
 	pj_status_t status;
 	char ct[30];
 	char name[10];
+	pj_str_t uri;
 	printf("Calling to: ");
 	scanf("%s",name);
-	snprintf(ct, sizeof(ct), "sip:%s@%s", name, server_ip); 
-	pj_str_t uri = pj_str(ct);
+     	if (pjsua_verify_url(name) != PJ_SUCCESS) 
+     	{
+		snprintf(ct, sizeof(ct), "sip:%s@%s", name, server_ip); 
+		if (pjsua_verify_url(ct) != PJ_SUCCESS) 
+		{
+			printf("Invalid URL entered. Try again. \n");
+			return status;
+		}
+		else uri = pj_str(ct);
+			
+	} 
+		else uri = pj_str(name);
 	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);	
 }
 

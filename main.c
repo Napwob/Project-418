@@ -28,10 +28,8 @@ int main()
 	configurate_account(server_ip,user_name,password);
 	account_registration();
 	
-	
         call_someone(server_ip);
-        
-        
+
         sleep(30);
 	pjsua_destroy();  
 	return 0;	
