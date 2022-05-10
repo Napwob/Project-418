@@ -22,12 +22,15 @@ int main()
 	printf("Server IP: %s\n",server_ip);
 	printf("User name: %s\n", user_name);
 	printf("%s's password: %s\n",user_name,password);
-	
 	configurate_init_PJSUA();
 	create_transport();
 	start_PJSUA();
 	configurate_account(server_ip,user_name,password);
 	account_registration();
+	
+	
+        call_someone(server_ip);
+        
         
         sleep(30);
 	pjsua_destroy();  

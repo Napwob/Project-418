@@ -3,12 +3,14 @@
 #include <pjlib.h>
 #include <pjsua-lib/pjsua.h>
 
+pjsua_acc_id acc_id;	
 #define THIS_FILE "Sip Client"
+
 //MAIN FUNCTIONALITY STUFF
 static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata) {
 	pjsua_call_info ci;
 	pjsua_call_get_info(call_id, &ci);
-	PJ_LOG(3,(THIS_FILE, "Incoming call from %.*s!!", (int)ci.remote_info.slen, ci.remote_info.ptr));
+	printf("Incoming call from %.*s\n", (int)ci.remote_info.slen, ci.remote_info.ptr);
 	pjsua_call_answer(call_id, 200, NULL, NULL);
 }
 
@@ -22,12 +24,23 @@ static void on_call_media_state(pjsua_call_id call_id)
 	}
 }
 
+pj_status_t call_someone(char* server_ip)
+{
+	pj_status_t status;
+	char ct[30];
+	char name[10];
+	printf("Calling to: ");
+	scanf("%s",name);
+	snprintf(ct, sizeof(ct), "sip:%s@%s", name, server_ip); 
+	pj_str_t uri = pj_str(ct);
+	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);	
+}
+
 
 //INITIALISATION STUFF
 pj_status_t configurate_init_PJSUA()
 {	
 	pj_status_t status;
-	
 	status = pjsua_create();
     	if (status != PJ_SUCCESS) {
         	pjsua_perror(THIS_FILE, "Error initializing pjsua", status);
@@ -43,7 +56,8 @@ pj_status_t configurate_init_PJSUA()
 	pjsua_logging_config_default(&log_cfg);
 	pjsua_media_config_default(&media_cfg);
 	
-	log_cfg.console_level = 4;
+	log_cfg.level = 0;
+	log_cfg.console_level = 0;
 	
 	ua_cfg.cb.on_incoming_call = &on_incoming_call;
 	ua_cfg.cb.on_call_media_state = &on_call_media_state;
@@ -86,7 +100,6 @@ pj_status_t configurate_account(char* server_ip,char* user_name,char* password)
 {
 	pj_status_t status;
 	pjsua_acc_config acc_cfg;
-	pjsua_acc_id acc_id;
 	
 	pjsua_acc_config_default(&acc_cfg);
 	char sip_uri[50];
