@@ -2,22 +2,27 @@
 #include <pjlib-util.h>
 #include <pjlib.h>
 #include <pjsua-lib/pjsua.h>
+#include <gtk/gtk.h>
 
 pjsua_acc_id acc_id;	
+//GtkWidget *answer_button;
 #define THIS_FILE "Sip Client"
+
 
 //MAIN FUNCTIONALITY STUFF
 static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata) {
 	pjsua_call_info ci;
 	pjsua_call_get_info(call_id, &ci);
 	printf("Incoming call from %.*s\n", (int)ci.remote_info.slen, ci.remote_info.ptr);
-	int a;
-	printf("Answer?(1/0): ");
+	//gtk_widget_set_sensitive(answer_button, TRUE);
+	pjsua_call_answer(call_id, 200, NULL, NULL);
+	/*printf("Answer?(1/0): ");
 	scanf("%d",&a);
 	if(a == 1)
 		pjsua_call_answer(call_id, 200, NULL, NULL);
 	else
 		pjsua_call_answer(call_id, 486, NULL, NULL);
+	*/
 }
 
 static void on_call_media_state(pjsua_call_id call_id)
@@ -30,17 +35,14 @@ static void on_call_media_state(pjsua_call_id call_id)
 	}
 }
 
-pj_status_t call_someone(char* server_ip)
+pj_status_t call_someone(char* server_ip,char* call_sip)
 {
 	pj_status_t status;
 	char ct[30];
-	char name[10];
 	pj_str_t uri;
-	printf("Calling to: ");
-	scanf("%s",name);
-     	if (pjsua_verify_url(name) != PJ_SUCCESS) 
+     	if (pjsua_verify_url(call_sip) != PJ_SUCCESS) 
      	{
-		snprintf(ct, sizeof(ct), "sip:%s@%s", name, server_ip); 
+		snprintf(ct, sizeof(ct), "sip:%s@%s", call_sip, server_ip); 
 		if (pjsua_verify_url(ct) != PJ_SUCCESS) 
 		{
 			printf("Invalid URL entered. Try again. \n");
@@ -49,7 +51,7 @@ pj_status_t call_someone(char* server_ip)
 		else uri = pj_str(ct);
 			
 	} 
-		else uri = pj_str(name);
+		else uri = pj_str(call_sip);
 	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);	
 }
 
