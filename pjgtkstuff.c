@@ -5,9 +5,9 @@
 #include <gtk/gtk.h>
 #include "pjgtkstuff.h"
 
-char server_ip[15];
-char user_name[20];
-char password[30];
+char server_ip[15]="192.168.56.102";
+char user_name[20]="6000";
+char password[30]="PASSWORD";
 GtkWidget *ip_label, *ip_entry;
 GtkWidget *login_label, *login_entry;
 GtkWidget *password_label, *password_entry;
@@ -29,9 +29,45 @@ void set_button_clicked(GtkWidget *button, gpointer data)
 
 void call_button_clicked(GtkWidget *button, gpointer data)
 {
-    char sip_call[20];
-    sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
-    call_someone(server_ip, sip_call);
+	char sip_call[40];
+	sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
+	pj_status_t status;
+	pj_pool_t *pool;
+	//printf("%s\n",sip_call);
+	if(strcmp(sip_call,user_name) != 0)
+	{
+		//puts("there");
+		if(strstr(sip_call,"sip:") != NULL && strstr(sip_call,"@") != NULL)
+		{
+			//puts("here");
+			char verify_cash[20];
+			strcpy(verify_cash,&sip_call[4]);
+			int c = strchr(verify_cash, '@') - verify_cash;
+			strncpy(verify_cash, verify_cash, c);
+			verify_cash[c] = '\0';
+			if(strcmp(verify_cash,user_name) == 0)
+				return;	
+		}
+	} else return; 
+	
+	char ct[60];
+	if (pjsua_verify_url(sip_call) != PJ_SUCCESS) 
+	{
+		//puts("Bad url!!!");
+		snprintf(ct, sizeof(ct), "sip:%s@%s", sip_call, server_ip); 
+		if (pjsua_verify_url(ct) != PJ_SUCCESS) 
+		{
+			//printf("Invalid URL entered. Try again. \n");
+		}
+			else 
+		{
+			//printf("%s\n",ct);
+			call_someone(server_ip, ct);	
+			return;	
+		}			
+	} 	
+	call_someone(server_ip, sip_call);
+	return;
 }
 
 void answer_button_clicked(GtkWidget *button, gpointer data)
@@ -193,23 +229,11 @@ static void on_call_media_state(pjsua_call_id call_id)
 
 pj_status_t call_someone(char* server_ip,char* call_sip)
 {
-	
 	pj_status_t status;
-	char ct[30];
-	pj_str_t uri;
-     	if (pjsua_verify_url(call_sip) != PJ_SUCCESS) 
-     	{
-		snprintf(ct, sizeof(ct), "sip:%s@%s", call_sip, server_ip); 
-		if (pjsua_verify_url(ct) != PJ_SUCCESS) 
-		{
-			printf("Invalid URL entered. Try again. \n");
-			return status;
-		}
-		else uri = pj_str(ct);
-			
-	} 
-		else uri = pj_str(call_sip);
-	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);	
+	pj_str_t uri=pj_str(call_sip);
+	printf("calling to %s\n",uri);
+	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
+	return status;	
 }
 
 
