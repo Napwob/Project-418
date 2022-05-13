@@ -11,7 +11,7 @@ CPPFLAGS= ${CFLAGS}
 all: clean sip_client
 
 sip_client: main.c
-	$(CC) pjstuff.c -o $@ $< $(CPPFLAGS) $(LDFLAGS) $(LDLIBS) `pkg-config --cflags --libs gtk+-3.0` -lncurses
+	$(CC) pjgtkstuff.c -o $@ $< $(CPPFLAGS) $(LDFLAGS) $(LDLIBS) `pkg-config --cflags --libs gtk+-3.0`
 
 clean:
 	rm -f main.o sip_client
