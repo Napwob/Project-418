@@ -18,12 +18,16 @@ static ringtone_port_info_t ringtone_port_info;
 char server_ip[15]="192.168.56.102";
 char user_name[20]="6000";
 char password[30]="PASSWORD";
+
 GtkWidget *ip_label, *ip_entry;
 GtkWidget *login_label, *login_entry;
 GtkWidget *password_label, *password_entry;
 GtkWidget *sip_label, *sip_entry;
-pjsua_acc_id acc_id;	
+GtkWidget *call_label;
 GtkWidget *answer_button;
+GtkWidget *call_button;
+
+pjsua_acc_id acc_id;	
 pjsua_call_id call_to_answer;
 pj_status_t stop_ring();
 #define THIS_FILE "Sip Client"
@@ -74,8 +78,10 @@ void call_button_clicked(GtkWidget *button, gpointer data)
 			call_someone(server_ip, ct);	
 			return;	
 		}			
-	} 	
+	} 
+	gtk_label_set_text((GtkLabel*)call_label,"Исходящий звонок");
 	call_someone(server_ip, sip_call);
+		
 	return;
 }
 
@@ -162,9 +168,8 @@ void registration_interface()
 void main_interface()
 {
     GtkWidget *window;
-    GtkWidget *hbox0, *hbox1;
+    GtkWidget *hbox0, *hbox1, *hbox2;
     GtkWidget *vbox;
-    GtkWidget *call_button;
 
     gtk_init (NULL, NULL);
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -177,6 +182,7 @@ void main_interface()
 
     // Создаем ярлык и поле ввода логина
     sip_label = gtk_label_new("SIP-адрес:");
+    call_label = gtk_label_new("Нет звонков");
     sip_entry = gtk_entry_new();
 
     // Создаем кнопки
@@ -192,10 +198,14 @@ void main_interface()
     gtk_box_pack_start(GTK_BOX(hbox0), sip_entry, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox0, TRUE, FALSE, 5);
 
-    hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_box_pack_start(GTK_BOX(hbox1), call_button, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(hbox1), answer_button, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, FALSE, 5);	
+    hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_start(GTK_BOX(hbox1), call_label, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, FALSE, 5);
+	
+    hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(hbox2), call_button, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox2), answer_button, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox2, TRUE, FALSE, 5);	
     
     gtk_widget_set_sensitive(answer_button, FALSE);
     gtk_container_add(GTK_CONTAINER(window), vbox);
@@ -246,18 +256,28 @@ pj_status_t stop_ring() {
 static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata) {
 	pjsua_call_info ci;
 	pjsua_call_get_info(call_id, &ci);
+	if (pjsua_call_get_count() > 1) {
+		pjsua_call_answer(call_id, 486, NULL, NULL);
+		return;
+	}
 	printf("Incoming call from %.*s\n", (int)ci.remote_info.slen, ci.remote_info.ptr);
+	
+	char who_is_calling[30];
+	snprintf(who_is_calling, sizeof(who_is_calling), "%.*s", (int)ci.remote_info.slen, ci.remote_info.ptr);
+	puts(who_is_calling);
+	
+	strcpy(who_is_calling,&who_is_calling[5]);
+	puts(who_is_calling);
+	int c = strchr(who_is_calling, '@') - who_is_calling;
+	strncpy(who_is_calling, who_is_calling, c);
+	who_is_calling[c] = '\0';
+	char result_string[40] = "Входящий вызов: ";
+	strcat(result_string, who_is_calling);
+	
+	gtk_label_set_text((GtkLabel*)call_label,result_string);
 	gtk_widget_set_sensitive(answer_button, TRUE);
 	start_ring();
 	call_to_answer = call_id;
-	//pjsua_call_answer(call_id, 200, NULL, NULL);
-	/*printf("Answer?(1/0): ");
-	scanf("%d",&a);
-	if(a == 1)
-		pjsua_call_answer(call_id, 200, NULL, NULL);
-	else
-		pjsua_call_answer(call_id, 486, NULL, NULL);
-	*/
 }
 
 static void on_call_media_state(pjsua_call_id call_id)
@@ -267,6 +287,23 @@ static void on_call_media_state(pjsua_call_id call_id)
 	if (ci.media_status == PJSUA_CALL_MEDIA_ACTIVE) {
 		pjsua_conf_connect(ci.conf_slot, 0);
 		pjsua_conf_connect(0, ci.conf_slot);
+	}
+}
+
+static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
+{
+	pjsua_call_info ci;
+
+	PJ_UNUSED_ARG(e);
+
+	pjsua_call_get_info(call_id, &ci);
+ 	   PJ_LOG(3,(THIS_FILE, "Call %d state=%.*s", call_id, (int)ci.state_text.slen, ci.state_text.ptr));
+
+
+	if (ci.state == PJSIP_INV_STATE_DISCONNECTED) { 
+		stop_ring();
+		gtk_widget_set_sensitive(answer_button, FALSE);
+		gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");	    	
 	}
 }
 
@@ -313,6 +350,7 @@ pj_status_t configurate_init_PJSUA()
 	log_cfg.console_level = 0;
 	
 	ua_cfg.cb.on_incoming_call = &on_incoming_call;
+	ua_cfg.cb.on_call_state = &on_call_state;
 	ua_cfg.cb.on_call_media_state = &on_call_media_state;
 		
 	status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
