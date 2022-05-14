@@ -26,6 +26,7 @@ GtkWidget *sip_label, *sip_entry;
 GtkWidget *call_label;
 GtkWidget *answer_button;
 GtkWidget *call_button;
+GtkWidget *decline_button;
 
 pjsua_acc_id acc_id;	
 pjsua_call_id call_to_answer;
@@ -44,6 +45,7 @@ void set_button_clicked(GtkWidget *button, gpointer data)
 
 void call_button_clicked(GtkWidget *button, gpointer data)
 {
+	gtk_widget_set_sensitive(decline_button, TRUE);
 	char sip_call[40];
 	char result_char[40]="Исходящий звонок: ";
 	sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
@@ -93,6 +95,13 @@ void answer_button_clicked(GtkWidget *button, gpointer data)
    stop_ring();
    pjsua_call_answer(call_to_answer, 200, NULL, NULL);
    gtk_widget_set_sensitive(answer_button, FALSE);
+}
+
+void decline_button_clicked(GtkWidget *button, gpointer data)
+{
+   stop_ring();
+   pjsua_call_hangup_all();
+   gtk_widget_set_sensitive(decline_button, FALSE);
 }
 
 void del_button_clicked(GtkWidget *button, gpointer data)
@@ -171,7 +180,7 @@ void registration_interface()
 void main_interface()
 {
     GtkWidget *window;
-    GtkWidget *hbox0, *hbox1, *hbox2;
+    GtkWidget *hbox0, *hbox1, *hbox2, *hbox3;
     GtkWidget *vbox;
 
     gtk_init (NULL, NULL);
@@ -191,10 +200,12 @@ void main_interface()
     // Создаем кнопки
     call_button = gtk_button_new_with_label("Позвонить");
     answer_button = gtk_button_new_with_label("Принять вызов");
+    decline_button = gtk_button_new_with_label("Прервать вызов");
 
     // Задаем функции кнопок
     g_signal_connect(GTK_BUTTON(call_button), "clicked", G_CALLBACK(call_button_clicked), login_entry);
     g_signal_connect(GTK_BUTTON(answer_button), "clicked", G_CALLBACK(answer_button_clicked), password_entry);
+    g_signal_connect(GTK_BUTTON(decline_button), "clicked", G_CALLBACK(decline_button_clicked), password_entry);
 
     hbox0 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_label, TRUE, FALSE, 5);
@@ -208,9 +219,11 @@ void main_interface()
     hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(hbox2), call_button, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox2), answer_button, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox2), decline_button, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox2, TRUE, FALSE, 5);	
     
     gtk_widget_set_sensitive(answer_button, FALSE);
+    gtk_widget_set_sensitive(decline_button, FALSE);
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
     g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -279,6 +292,7 @@ static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_r
 	
 	gtk_label_set_text((GtkLabel*)call_label,result_string);
 	gtk_widget_set_sensitive(answer_button, TRUE);
+	gtk_widget_set_sensitive(decline_button, TRUE);
 	gtk_widget_set_sensitive(call_button, FALSE);
 	start_ring();
 	call_to_answer = call_id;
