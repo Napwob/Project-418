@@ -45,7 +45,9 @@ void set_button_clicked(GtkWidget *button, gpointer data)
 void call_button_clicked(GtkWidget *button, gpointer data)
 {
 	char sip_call[40];
+	char result_char[40]="Исходящий звонок: ";
 	sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
+	strcat(result_char,sip_call);
 	//printf("%s\n",sip_call);
 	if(strcmp(sip_call,user_name) != 0)
 	{
@@ -75,11 +77,12 @@ void call_button_clicked(GtkWidget *button, gpointer data)
 			else 
 		{
 			//printf("%s\n",ct);
+			gtk_label_set_text((GtkLabel*)call_label,result_char);
 			call_someone(server_ip, ct);	
 			return;	
 		}			
 	} 
-	gtk_label_set_text((GtkLabel*)call_label,"Исходящий звонок");
+	gtk_label_set_text((GtkLabel*)call_label,result_char);
 	call_someone(server_ip, sip_call);
 		
 	return;
@@ -276,6 +279,7 @@ static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_r
 	
 	gtk_label_set_text((GtkLabel*)call_label,result_string);
 	gtk_widget_set_sensitive(answer_button, TRUE);
+	gtk_widget_set_sensitive(call_button, FALSE);
 	start_ring();
 	call_to_answer = call_id;
 }
@@ -303,6 +307,7 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
 	if (ci.state == PJSIP_INV_STATE_DISCONNECTED) { 
 		stop_ring();
 		gtk_widget_set_sensitive(answer_button, FALSE);
+		gtk_widget_set_sensitive(call_button, TRUE);
 		gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");	    	
 	}
 }
@@ -313,6 +318,7 @@ pj_status_t call_someone(char* server_ip,char* call_sip)
 	pj_str_t uri=pj_str(call_sip);
 	//printf("calling to %s\n",uri);
 	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
+	gtk_widget_set_sensitive(call_button, FALSE);
 	return status;	
 }
 
