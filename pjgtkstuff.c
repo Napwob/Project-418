@@ -301,8 +301,25 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
 	PJ_UNUSED_ARG(e);
 
 	pjsua_call_get_info(call_id, &ci);
- 	   PJ_LOG(3,(THIS_FILE, "Call %d state=%.*s", call_id, (int)ci.state_text.slen, ci.state_text.ptr));
-
+ 	PJ_LOG(3,(THIS_FILE, "Call %d state=%.*s", call_id, (int)ci.state_text.slen, ci.state_text.ptr));
+ 	
+ 	char who_is_calling[30];
+ 	snprintf(who_is_calling, sizeof(who_is_calling), "%.*s", (int)ci.remote_info.slen, ci.remote_info.ptr);
+ 	int b = strchr(who_is_calling, ':') - who_is_calling + 1;
+ 	strcpy(who_is_calling,&who_is_calling[b]);
+	puts(who_is_calling);
+	int c = strchr(who_is_calling, '@') - who_is_calling;
+	strncpy(who_is_calling, who_is_calling, c);
+	who_is_calling[c] = '\0';
+	char result_string[40] = "Звонок: ";
+	strcat(result_string, who_is_calling);
+	
+	if (ci.state == PJSIP_INV_STATE_CONFIRMED) { 
+		stop_ring();
+		gtk_widget_set_sensitive(answer_button, FALSE);
+		gtk_widget_set_sensitive(call_button, FALSE);
+		gtk_label_set_text((GtkLabel*)call_label,result_string);	    	
+	}
 
 	if (ci.state == PJSIP_INV_STATE_DISCONNECTED) { 
 		stop_ring();
