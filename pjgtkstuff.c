@@ -3,8 +3,18 @@
 #include <pjlib.h>
 #include <pjsua-lib/pjsua.h>
 #include <gtk/gtk.h>
+#include <pjmedia.h>
 #include "pjgtkstuff.h"
 
+
+typedef struct _ringtone_port_info {
+    int ring_on;
+    int ring_slot;
+    pjmedia_port *ring_port;
+    pj_pool_t *pool;
+} ringtone_port_info_t;
+
+static ringtone_port_info_t ringtone_port_info;
 char server_ip[15]="192.168.56.102";
 char user_name[20]="6000";
 char password[30]="PASSWORD";
@@ -15,6 +25,7 @@ GtkWidget *sip_label, *sip_entry;
 pjsua_acc_id acc_id;	
 GtkWidget *answer_button;
 pjsua_call_id call_to_answer;
+pj_status_t stop_ring();
 #define THIS_FILE "Sip Client"
 
 //MAIN INTERFACE STUFF
@@ -31,8 +42,6 @@ void call_button_clicked(GtkWidget *button, gpointer data)
 {
 	char sip_call[40];
 	sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
-	pj_status_t status;
-	pj_pool_t *pool;
 	//printf("%s\n",sip_call);
 	if(strcmp(sip_call,user_name) != 0)
 	{
@@ -72,6 +81,7 @@ void call_button_clicked(GtkWidget *button, gpointer data)
 
 void answer_button_clicked(GtkWidget *button, gpointer data)
 {
+   stop_ring();
    pjsua_call_answer(call_to_answer, 200, NULL, NULL);
    gtk_widget_set_sensitive(answer_button, FALSE);
 }
@@ -100,11 +110,11 @@ void registration_interface()
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
     // Создаем ярлык и поле ввода логина
-    ip_label = gtk_label_new("Введите IP:   ");
+    ip_label = gtk_label_new("Введите IP:          ");
     ip_entry = gtk_entry_new();
 
     // Создаем ярлык и поле ввода логина
-    login_label = gtk_label_new("Введите логин:");
+    login_label = gtk_label_new("Введите логин:  ");
     login_entry = gtk_entry_new();
 
     // Создаем ярлык и поле ввода пароля
@@ -201,11 +211,44 @@ void main_interface()
 
 
 //MAIN FUNCTIONALITY STUFF
+pj_status_t start_ring() {
+    pj_status_t status;
+
+    if (ringtone_port_info.ring_on) {
+        printf("Ringtone port already connected\n");
+        return PJ_SUCCESS;
+    }
+
+    //printf("Starting ringtone\n");
+    status = pjsua_conf_connect(ringtone_port_info.ring_slot, 0);
+    ringtone_port_info.ring_on = 1;
+    if (status != PJ_SUCCESS)
+        pjsua_perror(THIS_FILE, "Error connecting ringtone port", status);
+    return status;
+}
+
+pj_status_t stop_ring() {
+    pj_status_t status;
+
+    if (!ringtone_port_info.ring_on) {
+        printf("Ringtone port already disconnected\n");
+        return PJ_SUCCESS;
+    }
+
+    //printf("Stopping ringtone\n");
+    status = pjsua_conf_disconnect(ringtone_port_info.ring_slot, 0);
+    ringtone_port_info.ring_on = 0;
+    if (status != PJ_SUCCESS)
+        pjsua_perror(THIS_FILE, "Error disconnecting ringtone port", status);
+    return status;
+}
+
 static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_rx_data *rdata) {
 	pjsua_call_info ci;
 	pjsua_call_get_info(call_id, &ci);
 	printf("Incoming call from %.*s\n", (int)ci.remote_info.slen, ci.remote_info.ptr);
 	gtk_widget_set_sensitive(answer_button, TRUE);
+	start_ring();
 	call_to_answer = call_id;
 	//pjsua_call_answer(call_id, 200, NULL, NULL);
 	/*printf("Answer?(1/0): ");
@@ -231,7 +274,7 @@ pj_status_t call_someone(char* server_ip,char* call_sip)
 {
 	pj_status_t status;
 	pj_str_t uri=pj_str(call_sip);
-	printf("calling to %s\n",uri);
+	//printf("calling to %s\n",uri);
 	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
 	return status;	
 }
@@ -245,6 +288,7 @@ void pj_initialisation()
 	start_PJSUA();
 	configurate_account(server_ip,user_name,password);
 	account_registration();
+	init_ringtone_player();
 }
 
 pj_status_t configurate_init_PJSUA()
@@ -351,7 +395,33 @@ pj_status_t account_registration()
         } 
 }
 
+static void init_ringtone_player() {
 
+    int file_slot;
+    pj_pool_t *pool;
+    pjmedia_port *file_port;
+    pj_status_t status;
+
+    pool = pjsua_pool_create("wav", 4000, 4000);
+
+    status = pjmedia_wav_player_port_create(pool, "telephone.wav", 0, 0, 0, &file_port);
+
+    if (status != PJ_SUCCESS) {
+        pjsua_perror(THIS_FILE, "Error creating WAV player port", status);
+        return;
+    }
+
+    status = pjsua_conf_add_port(pool, file_port, &file_slot);
+
+    if (status != PJ_SUCCESS) {
+        pjsua_perror(THIS_FILE, "Error adding port to conference", status);
+        return;
+    }
+
+    ringtone_port_info = (ringtone_port_info_t) { .ring_on = 0, 
+        .ring_slot = file_slot, .ring_port = file_port , .pool = pool };
+
+}
 
 
 

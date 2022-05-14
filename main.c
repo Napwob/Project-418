@@ -19,7 +19,7 @@ int main()
 	//printf("User name: %s\n", user_name);
 	//printf("%s's password: %s\n",user_name,password);
 	
-	//registration_interface();
+	registration_interface();
 	pj_initialisation();
 	main_interface();
 	

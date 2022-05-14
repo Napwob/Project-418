@@ -10,4 +10,5 @@ pj_status_t call_someone(char* server_ip,char* call_sip);
 void registration_interface();
 void main_interface();
 void pj_initialisation();
+static void init_ringtone_player();
 #endif
