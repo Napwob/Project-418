@@ -22,11 +22,10 @@ char password[30]="PASSWORD";
 GtkWidget *ip_label, *ip_entry;
 GtkWidget *login_label, *login_entry;
 GtkWidget *password_label, *password_entry;
+
 GtkWidget *sip_label, *sip_entry;
-GtkWidget *call_label;
-GtkWidget *answer_button;
-GtkWidget *call_button;
-GtkWidget *decline_button;
+GtkWidget *call_label, *message_entry;
+GtkWidget *answer_button,*call_button,*decline_button, *send_button;
 
 pjsua_acc_id acc_id;	
 pjsua_call_id call_to_answer;
@@ -36,38 +35,55 @@ pj_status_t stop_ring();
 //MAIN INTERFACE STUFF
 void set_button_clicked(GtkWidget *button, gpointer data)
 {
-    sprintf(server_ip,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) ip_entry)));
-    sprintf(user_name,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) login_entry)));
-    sprintf(password,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) password_entry)));
-    //printf("%s\n%s\n%s\n",server_ip,user_name,password);
-    gtk_main_quit();
+	sprintf(server_ip,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) ip_entry)));
+	sprintf(user_name,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) login_entry)));
+	sprintf(password,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) password_entry)));
+	gtk_main_quit();
+}
+
+void send_button_clicked(GtkWidget *button, gpointer data)
+{
+	char message[100];
+	char for_whom[50];
+	sprintf(for_whom,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
+	sprintf(message,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) message_entry)));
+	
+	pj_str_t to = pj_str(for_whom);
+	pj_str_t content = pj_str(message);
+
+	pj_str_t text = pj_str(message);
+	pj_str_t who = pj_str("sip:6001@192.168.56.102");
+	pjsua_im_send(acc_id, &who, NULL, &text, NULL, NULL);
 }
 
 void call_button_clicked(GtkWidget *button, gpointer data)
 {
-	gtk_widget_set_sensitive(decline_button, TRUE);
-	char sip_call[40];
-	char result_char[40]="Исходящий звонок: ";
+	char sip_call[50];
+	char result_char[90]="Исходящий звонок: ";
 	sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
-	strcat(result_char,sip_call);
+	
+	if(strcmp(sip_call," ") == 0) return;
+	if(strcmp(sip_call,"") == 0) return;
+	gtk_widget_set_sensitive(decline_button, TRUE);
 	//printf("%s\n",sip_call);
 	if(strcmp(sip_call,user_name) != 0)
 	{
-		//puts("there");
 		if(strstr(sip_call,"sip:") != NULL && strstr(sip_call,"@") != NULL)
 		{
 			//puts("here");
-			char verify_cash[20];
+			char verify_cash[100];
 			strcpy(verify_cash,&sip_call[4]);
 			int c = strchr(verify_cash, '@') - verify_cash;
 			strncpy(verify_cash, verify_cash, c);
 			verify_cash[c] = '\0';
+			strcat(result_char,verify_cash);
 			if(strcmp(verify_cash,user_name) == 0)
 				return;	
 		}
-	} else return; 
+		else strcat(result_char,sip_call);
+	} else return;
 	
-	char ct[60];
+	char ct[100];
 	if (pjsua_verify_url(sip_call) != PJ_SUCCESS) 
 	{
 		//puts("Bad url!!!");
@@ -92,23 +108,23 @@ void call_button_clicked(GtkWidget *button, gpointer data)
 
 void answer_button_clicked(GtkWidget *button, gpointer data)
 {
-   stop_ring();
-   pjsua_call_answer(call_to_answer, 200, NULL, NULL);
-   gtk_widget_set_sensitive(answer_button, FALSE);
+	stop_ring();
+	pjsua_call_answer(call_to_answer, 200, NULL, NULL);
+	gtk_widget_set_sensitive(answer_button, FALSE);
 }
 
 void decline_button_clicked(GtkWidget *button, gpointer data)
 {
-   stop_ring();
-   pjsua_call_hangup_all();
-   gtk_widget_set_sensitive(decline_button, FALSE);
+	stop_ring();
+	pjsua_call_hangup_all();
+	gtk_widget_set_sensitive(decline_button, FALSE);
 }
 
 void del_button_clicked(GtkWidget *button, gpointer data)
 {
-    gtk_entry_set_text(GTK_ENTRY((GtkWidget*) ip_entry), "");
-    gtk_entry_set_text(GTK_ENTRY((GtkWidget*) login_entry), "");
-    gtk_entry_set_text(GTK_ENTRY((GtkWidget*) password_entry), "");
+	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) ip_entry), "");
+	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) login_entry), "");
+	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) password_entry), "");
 }
 
 void registration_interface()
@@ -180,7 +196,7 @@ void registration_interface()
 void main_interface()
 {
     GtkWidget *window;
-    GtkWidget *hbox0, *hbox1, *hbox2, *hbox3;
+    GtkWidget *hbox0, *hbox01, *hbox1, *hbox2, *hbox3;
     GtkWidget *vbox;
 
     gtk_init (NULL, NULL);
@@ -196,21 +212,29 @@ void main_interface()
     sip_label = gtk_label_new("SIP-адрес:");
     call_label = gtk_label_new("Нет звонков");
     sip_entry = gtk_entry_new();
+    message_entry = gtk_entry_new();
 
     // Создаем кнопки
     call_button = gtk_button_new_with_label("Позвонить");
     answer_button = gtk_button_new_with_label("Принять вызов");
     decline_button = gtk_button_new_with_label("Прервать вызов");
+    send_button = gtk_button_new_with_label("Отправить");
 
     // Задаем функции кнопок
     g_signal_connect(GTK_BUTTON(call_button), "clicked", G_CALLBACK(call_button_clicked), login_entry);
     g_signal_connect(GTK_BUTTON(answer_button), "clicked", G_CALLBACK(answer_button_clicked), password_entry);
     g_signal_connect(GTK_BUTTON(decline_button), "clicked", G_CALLBACK(decline_button_clicked), password_entry);
+    g_signal_connect(GTK_BUTTON(send_button), "clicked", G_CALLBACK(send_button_clicked), password_entry);
 
     hbox0 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_label, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_entry, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox0, TRUE, FALSE, 5);
+	
+    hbox01 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_start(GTK_BOX(hbox01), message_entry, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox01), send_button, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox01, TRUE, FALSE, 5);
 
     hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox1), call_label, TRUE, FALSE, 5);
@@ -339,7 +363,8 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
 		stop_ring();
 		gtk_widget_set_sensitive(answer_button, FALSE);
 		gtk_widget_set_sensitive(call_button, TRUE);
-		gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");	    	
+		gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");
+		gtk_widget_set_sensitive(decline_button, FALSE);	    	
 	}
 }
 
