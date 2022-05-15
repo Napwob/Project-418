@@ -47,13 +47,11 @@ void send_button_clicked(GtkWidget *button, gpointer data)
 	char for_whom[50];
 	sprintf(for_whom,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
 	sprintf(message,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) message_entry)));
-	
-	pj_str_t to = pj_str(for_whom);
-	pj_str_t content = pj_str(message);
-
+	//printf("Send to %s\n",for_whom);
+	pj_str_t who = pj_str(for_whom);
 	pj_str_t text = pj_str(message);
-	pj_str_t who = pj_str("sip:6001@192.168.56.102");
 	pjsua_im_send(acc_id, &who, NULL, &text, NULL, NULL);
+	puts("Sended");
 }
 
 void call_button_clicked(GtkWidget *button, gpointer data)
@@ -261,6 +259,11 @@ void main_interface()
 
 
 //MAIN FUNCTIONALITY STUFF
+static void on_pager(pjsua_call_id call_id, const pj_str_t *from, const pj_str_t *to, const pj_str_t *contact, const pj_str_t *mime_type, const pj_str_t *body)
+{
+	puts("recieve");
+}
+
 pj_status_t start_ring() {
     pj_status_t status;
 
@@ -304,10 +307,10 @@ static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_r
 	
 	char who_is_calling[30];
 	snprintf(who_is_calling, sizeof(who_is_calling), "%.*s", (int)ci.remote_info.slen, ci.remote_info.ptr);
-	puts(who_is_calling);
+	//puts(who_is_calling);
 	
 	strcpy(who_is_calling,&who_is_calling[5]);
-	puts(who_is_calling);
+	//puts(who_is_calling);
 	int c = strchr(who_is_calling, '@') - who_is_calling;
 	strncpy(who_is_calling, who_is_calling, c);
 	who_is_calling[c] = '\0';
@@ -345,7 +348,7 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
  	snprintf(who_is_calling, sizeof(who_is_calling), "%.*s", (int)ci.remote_info.slen, ci.remote_info.ptr);
  	int b = strchr(who_is_calling, ':') - who_is_calling + 1;
  	strcpy(who_is_calling,&who_is_calling[b]);
-	puts(who_is_calling);
+	//puts(who_is_calling);
 	int c = strchr(who_is_calling, '@') - who_is_calling;
 	strncpy(who_is_calling, who_is_calling, c);
 	who_is_calling[c] = '\0';
@@ -371,8 +374,8 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
 pj_status_t call_someone(char* server_ip,char* call_sip)
 {
 	pj_status_t status;
+	printf("Calling to %s\n",call_sip);
 	pj_str_t uri=pj_str(call_sip);
-	//printf("calling to %s\n",uri);
 	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
 	gtk_widget_set_sensitive(call_button, FALSE);
 	return status;	
@@ -414,6 +417,7 @@ pj_status_t configurate_init_PJSUA()
 	ua_cfg.cb.on_incoming_call = &on_incoming_call;
 	ua_cfg.cb.on_call_state = &on_call_state;
 	ua_cfg.cb.on_call_media_state = &on_call_media_state;
+	ua_cfg.cb.on_pager = &on_pager;
 		
 	status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
 	if (status != PJ_SUCCESS) {
