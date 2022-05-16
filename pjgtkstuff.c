@@ -23,7 +23,7 @@ GtkWidget *ip_label, *ip_entry;
 GtkWidget *login_label, *login_entry;
 GtkWidget *password_label, *password_entry;
 
-GtkWidget *sip_label, *sip_entry;
+GtkWidget *sip_label, *sip_entry, *chat_label;
 GtkWidget *call_label, *message_entry;
 GtkWidget *answer_button,*call_button,*decline_button, *send_button;
 
@@ -224,7 +224,7 @@ void main_interface()
 {
     GtkWidget *window;
     GtkWidget *hbox0, *hbox01, *hbox1, *hbox2, *hbox3;
-    GtkWidget *vbox;
+    GtkWidget *vbox,*vbox1;
 
     gtk_init (NULL, NULL);
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -234,9 +234,11 @@ void main_interface()
     gtk_window_set_default_size(GTK_WINDOW(window), 300, 200);
 
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-
+    vbox1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    
     // Создаем ярлык и поле ввода логина
     sip_label = gtk_label_new("SIP-адрес:");
+    chat_label = gtk_label_new("Нет сообщений");
     call_label = gtk_label_new("Нет звонков");
     sip_entry = gtk_entry_new();
     message_entry = gtk_entry_new();
@@ -265,6 +267,7 @@ void main_interface()
 
     hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox1), call_label, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox1), chat_label, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, FALSE, 5);
 	
     hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -275,6 +278,7 @@ void main_interface()
     
     gtk_widget_set_sensitive(answer_button, FALSE);
     gtk_widget_set_sensitive(decline_button, FALSE);
+    
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
     g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -290,9 +294,21 @@ void main_interface()
 //MAIN FUNCTIONALITY STUFF
 static void on_pager(pjsua_call_id call_id, const pj_str_t *from, const pj_str_t *to, const pj_str_t *contact, const pj_str_t *mime_type, const pj_str_t *body)
 {
-	//PJ_LOG(3,(THIS_FILE, "MESSAGE from %.*s: %.*s (%.*s)", (int)from->slen, from->ptr, (int)text->slen, text->ptr, (int)mime_type->slen, mime_type->ptr));
-	printf("MESSAGE from %.*s: %.*s (%.*s)\n", (int)from->slen, from->ptr,
-(int)body->slen, body->ptr, (int)mime_type->slen, mime_type->ptr);
+	//printf("MESSAGE from %.*s: %.*s\n", (int)from->slen, from->ptr, (int)body->slen, body->ptr);	
+	char message[100], who[50];
+	
+	sprintf(who, "%.*s",(int)from->slen, from->ptr);
+	strcpy(who,&who[16]);
+	int c = strchr(who, '@') - who;
+	strncpy(who, who, c);
+	who[c] = '\0';
+	sprintf(message, "%.*s",(int)body->slen, body->ptr);
+	
+	char final_string[1500];
+	snprintf(final_string, sizeof(final_string), "%s: %s", who, message); 
+	
+	gtk_label_set_text((GtkLabel*)chat_label,final_string);
+	
 	return;
 }
 
