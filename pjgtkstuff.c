@@ -47,11 +47,40 @@ void send_button_clicked(GtkWidget *button, gpointer data)
 	char for_whom[50];
 	sprintf(for_whom,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
 	sprintf(message,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) message_entry)));
-	//printf("Send to %s\n",for_whom);
-	pj_str_t who = pj_str(for_whom);
+	pj_str_t who;
+	if((strcmp(for_whom," ") == 0) ||((strcmp(message," ") == 0))) return;
+	if((strcmp(for_whom,"") == 0) ||((strcmp(message,"") == 0))) return;
+	
+	if(strcmp(for_whom,user_name) != 0)
+	{
+		if(strstr(for_whom,"sip:") != NULL && strstr(for_whom,"@") != NULL)
+		{
+			//puts("here");
+			char verify_cash[100];
+			strcpy(verify_cash,&for_whom[4]);
+			int c = strchr(verify_cash, '@') - verify_cash;
+			strncpy(verify_cash, verify_cash, c);
+			verify_cash[c] = '\0';
+			if(strcmp(verify_cash,user_name) == 0)
+				return;	
+		}
+	} else return;
+	
+	if (pjsua_verify_url(for_whom) != PJ_SUCCESS) 
+	{
+		char ct[100];
+		snprintf(ct, sizeof(ct), "sip:%s@%s", for_whom, server_ip); 
+		if (pjsua_verify_url(ct) != PJ_SUCCESS) 
+		{
+			printf("Invalid URL entered. Try again. \n");
+		}
+			else 
+		{
+			who = pj_str(ct);	
+		}			
+	} else who = pj_str(for_whom);
 	pj_str_t text = pj_str(message);
 	pjsua_im_send(acc_id, &who, NULL, &text, NULL, NULL);
-	puts("Sended");
 }
 
 void call_button_clicked(GtkWidget *button, gpointer data)
@@ -261,8 +290,19 @@ void main_interface()
 //MAIN FUNCTIONALITY STUFF
 static void on_pager(pjsua_call_id call_id, const pj_str_t *from, const pj_str_t *to, const pj_str_t *contact, const pj_str_t *mime_type, const pj_str_t *body)
 {
-	puts("recieve");
+	//PJ_LOG(3,(THIS_FILE, "MESSAGE from %.*s: %.*s (%.*s)", (int)from->slen, from->ptr, (int)text->slen, text->ptr, (int)mime_type->slen, mime_type->ptr));
+	printf("MESSAGE from %.*s: %.*s (%.*s)\n", (int)from->slen, from->ptr,
+(int)body->slen, body->ptr, (int)mime_type->slen, mime_type->ptr);
+	return;
 }
+
+
+/*static void on_pager_status(pjsua_call_id call_id, const pj_str_t *to, const pj_str_t *body, void *user_data, pjsip_status_code status, const pj_str_t *reason)
+{
+	puts("2 recieved");
+	printf("2 recieved\n");
+}*/
+
 
 pj_status_t start_ring() {
     pj_status_t status;
@@ -414,10 +454,11 @@ pj_status_t configurate_init_PJSUA()
 	log_cfg.level = 0;
 	log_cfg.console_level = 0;
 	
+	ua_cfg.cb.on_pager = &on_pager;
+	//ua_cfg.cb.on_pager_status = &on_pager_status;
 	ua_cfg.cb.on_incoming_call = &on_incoming_call;
 	ua_cfg.cb.on_call_state = &on_call_state;
 	ua_cfg.cb.on_call_media_state = &on_call_media_state;
-	ua_cfg.cb.on_pager = &on_pager;
 		
 	status = pjsua_init(&ua_cfg, &log_cfg, &media_cfg);
 	if (status != PJ_SUCCESS) {
