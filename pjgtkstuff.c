@@ -15,9 +15,11 @@ typedef struct _ringtone_port_info {
 } ringtone_port_info_t;
 
 static ringtone_port_info_t ringtone_port_info;
-char server_ip[15]="192.168.56.102";
-char user_name[20]="6000";
-char password[30]="PASSWORD";
+char server_ip[15] = "192.168.56.102";
+char user_name[20] = "6000";
+char password[30] = "PASSWORD";
+int tube_button_mode = 0;//0 for call 1 for accept 2 for nothing
+int decline_button_mode = 1;//0 for decline 1 for nothing
 
 GtkWidget *ip_label, *ip_entry;
 GtkWidget *login_label, *login_entry;
@@ -25,7 +27,7 @@ GtkWidget *password_label, *password_entry;
 
 GtkWidget *sip_label, *sip_entry, *chat_label;
 GtkWidget *call_label, *message_entry;
-GtkWidget *answer_button,*call_button,*decline_button, *send_button;
+GtkWidget *ancall_button, *decline_button, *send_button;
 
 pjsua_acc_id acc_id;	
 pjsua_call_id call_to_answer;
@@ -83,68 +85,79 @@ void send_button_clicked(GtkWidget *button, gpointer data)
 	pjsua_im_send(acc_id, &who, NULL, &text, NULL, NULL);
 }
 
-void call_button_clicked(GtkWidget *button, gpointer data)
+void ancall_button_clicked(GtkWidget *button, gpointer data)
 {
-	char sip_call[50];
-	char result_char[90]="Исходящий звонок: ";
-	sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
-	
-	if(strcmp(sip_call," ") == 0) return;
-	if(strcmp(sip_call,"") == 0) return;
-	gtk_widget_set_sensitive(decline_button, TRUE);
-	//printf("%s\n",sip_call);
-	if(strcmp(sip_call,user_name) != 0)
+	if(tube_button_mode == 0)
 	{
-		if(strstr(sip_call,"sip:") != NULL && strstr(sip_call,"@") != NULL)
-		{
-			//puts("here");
-			char verify_cash[100];
-			strcpy(verify_cash,&sip_call[4]);
-			int c = strchr(verify_cash, '@') - verify_cash;
-			strncpy(verify_cash, verify_cash, c);
-			verify_cash[c] = '\0';
-			strcat(result_char,verify_cash);
-			if(strcmp(verify_cash,user_name) == 0)
-				return;	
-		}
-		else strcat(result_char,sip_call);
-	} else return;
-	
-	char ct[100];
-	if (pjsua_verify_url(sip_call) != PJ_SUCCESS) 
-	{
-		//puts("Bad url!!!");
-		snprintf(ct, sizeof(ct), "sip:%s@%s", sip_call, server_ip); 
-		if (pjsua_verify_url(ct) != PJ_SUCCESS) 
-		{
-			//printf("Invalid URL entered. Try again. \n");
-		}
-			else 
-		{
-			//printf("%s\n",ct);
-			gtk_label_set_text((GtkLabel*)call_label,result_char);
-			call_someone(server_ip, ct);	
-			return;	
-		}			
-	} 
-	gtk_label_set_text((GtkLabel*)call_label,result_char);
-	call_someone(server_ip, sip_call);
+		//puts("Can make call");
+		char sip_call[50];
+		char result_char[90]="Исходящий звонок: ";
+		sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
 		
+		if(strcmp(sip_call," ") == 0) return;
+		if(strcmp(sip_call,"") == 0) return;
+		decline_button_mode = 0;
+		//printf("%s\n",sip_call);
+		if(strcmp(sip_call,user_name) != 0)
+		{
+			if(strstr(sip_call,"sip:") != NULL && strstr(sip_call,"@") != NULL)
+			{
+				//puts("here");
+				char verify_cash[100];
+				strcpy(verify_cash,&sip_call[4]);
+				int c = strchr(verify_cash, '@') - verify_cash;
+				strncpy(verify_cash, verify_cash, c);
+				verify_cash[c] = '\0';
+				strcat(result_char,verify_cash);
+				if(strcmp(verify_cash,user_name) == 0)
+					return;	
+			}
+			else strcat(result_char,sip_call);
+		} else return;
+		
+		char ct[100];
+		if (pjsua_verify_url(sip_call) != PJ_SUCCESS) 
+		{
+			//puts("Bad url!!!");
+			snprintf(ct, sizeof(ct), "sip:%s@%s", sip_call, server_ip); 
+			if (pjsua_verify_url(ct) != PJ_SUCCESS) 
+			{
+				//printf("Invalid URL entered. Try again. \n");
+			}
+				else 
+			{
+				//printf("%s\n",ct);
+				gtk_label_set_text((GtkLabel*)call_label,result_char);
+				call_someone(server_ip, ct);	
+				return;	
+			}			
+		} 
+		gtk_label_set_text((GtkLabel*)call_label,result_char);
+		call_someone(server_ip, sip_call);
+	}
+	if(tube_button_mode == 1)
+	{
+		//puts("Can accept call");
+		stop_ring();
+		pjsua_call_answer(call_to_answer, 200, NULL, NULL);
+		tube_button_mode = 2;
+	}
+	if(tube_button_mode == 2)
+	{
+		//puts("Can do nothing");
+	}
 	return;
-}
-
-void answer_button_clicked(GtkWidget *button, gpointer data)
-{
-	stop_ring();
-	pjsua_call_answer(call_to_answer, 200, NULL, NULL);
-	gtk_widget_set_sensitive(answer_button, FALSE);
 }
 
 void decline_button_clicked(GtkWidget *button, gpointer data)
 {
-	stop_ring();
-	pjsua_call_hangup_all();
-	gtk_widget_set_sensitive(decline_button, FALSE);
+	if(decline_button_mode == 0)
+	{
+		//puts("Can do nothing");
+		stop_ring();
+		pjsua_call_hangup_all();
+		decline_button_mode = 1;
+	}
 }
 
 void del_button_clicked(GtkWidget *button, gpointer data)
@@ -244,14 +257,12 @@ void main_interface()
     message_entry = gtk_entry_new();
 
     // Создаем кнопки
-    call_button = gtk_button_new_with_label("Позвонить");
-    answer_button = gtk_button_new_with_label("Принять вызов");
+    ancall_button = gtk_button_new_with_label("Трубочка");
     decline_button = gtk_button_new_with_label("Прервать вызов");
     send_button = gtk_button_new_with_label("Отправить");
 
     // Задаем функции кнопок
-    g_signal_connect(GTK_BUTTON(call_button), "clicked", G_CALLBACK(call_button_clicked), login_entry);
-    g_signal_connect(GTK_BUTTON(answer_button), "clicked", G_CALLBACK(answer_button_clicked), password_entry);
+    g_signal_connect(GTK_BUTTON(ancall_button), "clicked", G_CALLBACK(ancall_button_clicked), login_entry);
     g_signal_connect(GTK_BUTTON(decline_button), "clicked", G_CALLBACK(decline_button_clicked), password_entry);
     g_signal_connect(GTK_BUTTON(send_button), "clicked", G_CALLBACK(send_button_clicked), password_entry);
 
@@ -271,13 +282,9 @@ void main_interface()
     gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, FALSE, 5);
 	
     hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_box_pack_start(GTK_BOX(hbox2), call_button, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(hbox2), answer_button, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox2), ancall_button, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox2), decline_button, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox2, TRUE, FALSE, 5);	
-    
-    gtk_widget_set_sensitive(answer_button, FALSE);
-    gtk_widget_set_sensitive(decline_button, FALSE);
     
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
@@ -374,9 +381,8 @@ static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_r
 	strcat(result_string, who_is_calling);
 	
 	gtk_label_set_text((GtkLabel*)call_label,result_string);
-	gtk_widget_set_sensitive(answer_button, TRUE);
-	gtk_widget_set_sensitive(decline_button, TRUE);
-	gtk_widget_set_sensitive(call_button, FALSE);
+	tube_button_mode = 1;
+	decline_button_mode = 0;
 	start_ring();
 	call_to_answer = call_id;
 }
@@ -413,17 +419,15 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
 	
 	if (ci.state == PJSIP_INV_STATE_CONFIRMED) { 
 		stop_ring();
-		gtk_widget_set_sensitive(answer_button, FALSE);
-		gtk_widget_set_sensitive(call_button, FALSE);
+		tube_button_mode = 2;
 		gtk_label_set_text((GtkLabel*)call_label,result_string);	    	
 	}
 
 	if (ci.state == PJSIP_INV_STATE_DISCONNECTED) { 
 		stop_ring();
-		gtk_widget_set_sensitive(answer_button, FALSE);
-		gtk_widget_set_sensitive(call_button, TRUE);
-		gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");
-		gtk_widget_set_sensitive(decline_button, FALSE);	    	
+		tube_button_mode = 0;
+		decline_button_mode = 1;
+		gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");    	
 	}
 }
 
@@ -433,7 +437,7 @@ pj_status_t call_someone(char* server_ip,char* call_sip)
 	printf("Calling to %s\n",call_sip);
 	pj_str_t uri=pj_str(call_sip);
 	status = pjsua_call_make_call(acc_id, &uri, 0, NULL, NULL, NULL);
-	gtk_widget_set_sensitive(call_button, FALSE);
+	tube_button_mode = 2;
 	return status;	
 }
 
