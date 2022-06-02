@@ -25,9 +25,13 @@ GtkWidget *ip_label, *ip_entry;
 GtkWidget *login_label, *login_entry;
 GtkWidget *password_label, *password_entry;
 
-GtkWidget *sip_label, *sip_entry, *chat_label;
+GtkTextBuffer *chat_buff;
+
+GtkWidget *sip_label, *sip_entry, *chat_window, *chat_view;
 GtkWidget *call_label, *message_entry;
 GtkWidget *ancall_button, *decline_button, *send_button;
+
+char message_cash[10000];
 
 pjsua_acc_id acc_id;	
 pjsua_call_id call_to_answer;
@@ -41,6 +45,15 @@ void set_button_clicked(GtkWidget *button, gpointer data)
 	sprintf(user_name,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) login_entry)));
 	sprintf(password,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) password_entry)));
 	gtk_main_quit();
+}
+
+void design_message(char* user_name, char* message)
+{
+	strcat(message_cash,user_name);
+	strcat(message_cash,": ");
+	strcat(message_cash,message);
+	strcat(message_cash,"\n");
+	gtk_text_buffer_set_text(chat_buff, message_cash, -1);	
 }
 
 void send_button_clicked(GtkWidget *button, gpointer data)
@@ -82,7 +95,11 @@ void send_button_clicked(GtkWidget *button, gpointer data)
 		}			
 	} else who = pj_str(for_whom);
 	pj_str_t text = pj_str(message);
-	pjsua_im_send(acc_id, &who, NULL, &text, NULL, NULL);
+	pjsua_im_send(acc_id, &who, NULL, &text, NULL, NULL);	
+	
+	design_message(user_name, message);
+	
+	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) message_entry), "");
 }
 
 void ancall_button_clicked(GtkWidget *button, gpointer data)
@@ -234,51 +251,66 @@ void registration_interface()
 }
 
 void main_interface()
-{
+{	
     GtkWidget *window;
     GtkWidget *hbox0, *hbox01, *hbox1, *hbox2, *hbox3;
-    GtkWidget *vbox,*vbox1;
-
+    GtkWidget *vbox,*vbox1,*vbox2;
+    GtkWidget *scrolls;
     gtk_init (NULL, NULL);
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-
+    
+    GtkImage *green,*red,*send;
+    green = (GtkImage *)gtk_image_new_from_file("resources/green.jpg");
+    red = (GtkImage *)gtk_image_new_from_file("resources/red.jpg");	
+    send = (GtkImage *)gtk_image_new_from_file("resources/send.jpg");	
+    GtkSettings *default_settings = gtk_settings_get_default();
+    g_object_set(default_settings, "gtk-button-images", TRUE, NULL);
+    
     gtk_window_set_title (GTK_WINDOW (window), "SIPHONE");
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     gtk_window_set_default_size(GTK_WINDOW(window), 300, 200);
-
-    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    vbox1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     
     // Создаем ярлык и поле ввода логина
     sip_label = gtk_label_new("SIP-адрес:");
-    chat_label = gtk_label_new("Нет сообщений");
     call_label = gtk_label_new("Нет звонков");
     sip_entry = gtk_entry_new();
     message_entry = gtk_entry_new();
-
+    gtk_widget_set_size_request(message_entry, 250, 20);
+    
     // Создаем кнопки
-    ancall_button = gtk_button_new_with_label("Трубочка");
-    decline_button = gtk_button_new_with_label("Прервать вызов");
-    send_button = gtk_button_new_with_label("Отправить");
-
+    ancall_button = gtk_button_new_with_label("");
+    gtk_button_set_image (GTK_BUTTON(ancall_button),(GtkWidget *)green); 
+    decline_button = gtk_button_new_with_label("");
+    gtk_button_set_image (GTK_BUTTON(decline_button),(GtkWidget *)red); 
+    send_button = gtk_button_new_with_label("");
+    gtk_button_set_image (GTK_BUTTON(send_button),(GtkWidget *)send); 
+    
+    //создаем окно чата
+    chat_view = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(chat_view),FALSE);
+    gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW(chat_view), FALSE);
+    scrolls = gtk_scrolled_window_new(NULL, NULL); 
+    gtk_widget_set_size_request(scrolls, 350, 200);
+    chat_buff = gtk_text_view_get_buffer(GTK_TEXT_VIEW(chat_view));
+    gtk_container_add(GTK_CONTAINER(scrolls), chat_view);
+    
     // Задаем функции кнопок
     g_signal_connect(GTK_BUTTON(ancall_button), "clicked", G_CALLBACK(ancall_button_clicked), login_entry);
     g_signal_connect(GTK_BUTTON(decline_button), "clicked", G_CALLBACK(decline_button_clicked), password_entry);
     g_signal_connect(GTK_BUTTON(send_button), "clicked", G_CALLBACK(send_button_clicked), password_entry);
+	
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    vbox1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    vbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
     hbox0 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_label, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_entry, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox0, TRUE, FALSE, 5);
 	
-    hbox01 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    gtk_box_pack_start(GTK_BOX(hbox01), message_entry, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(hbox01), send_button, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), hbox01, TRUE, FALSE, 5);
 
     hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox1), call_label, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(hbox1), chat_label, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, FALSE, 5);
 	
     hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -286,7 +318,17 @@ void main_interface()
     gtk_box_pack_start(GTK_BOX(hbox2), decline_button, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox2, TRUE, FALSE, 5);	
     
-    gtk_container_add(GTK_CONTAINER(window), vbox);
+    gtk_box_pack_start(GTK_BOX(vbox1), scrolls, TRUE, FALSE, 5);
+    hbox01 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_start(GTK_BOX(hbox01), message_entry, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox01), send_button, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox1), hbox01, TRUE, FALSE, 5);
+
+    
+    gtk_box_pack_start(GTK_BOX(vbox2), vbox, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox2), vbox1, TRUE, FALSE, 5);
+
+    gtk_container_add(GTK_CONTAINER(window), vbox2);
 
     g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
@@ -311,10 +353,7 @@ static void on_pager(pjsua_call_id call_id, const pj_str_t *from, const pj_str_t
 	who[c] = '\0';
 	sprintf(message, "%.*s",(int)body->slen, body->ptr);
 	
-	char final_string[1500];
-	snprintf(final_string, sizeof(final_string), "%s: %s", who, message); 
-	
-	gtk_label_set_text((GtkLabel*)chat_label,final_string);
+	design_message(who,message);
 	
 	return;
 }
@@ -569,7 +608,7 @@ static void init_ringtone_player() {
 
     pool = pjsua_pool_create("wav", 4000, 4000);
 
-    status = pjmedia_wav_player_port_create(pool, "telephone.wav", 0, 0, 0, &file_port);
+    status = pjmedia_wav_player_port_create(pool, "resources/telephone.wav", 0, 0, 0, &file_port);
 
     if (status != PJ_SUCCESS) {
         pjsua_perror(THIS_FILE, "Error creating WAV player port", status);
