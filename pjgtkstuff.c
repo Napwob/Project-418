@@ -279,7 +279,6 @@ void main_interface()
     gtk_entry_set_placeholder_text(GTK_ENTRY(message_entry),"Напишите сообщение...");
     //GIcon *icon= g_file_icon_new(g_file_new_for_path("resources/send.jpg")); 
     //gtk_entry_set_icon_from_gicon(GTK_ENTRY(message_entry),GTK_ENTRY_ICON_SECONDARY, icon);
-    gtk_widget_set_size_request(message_entry, 250, 20);
     
     
     // Создаем кнопки
@@ -323,12 +322,13 @@ void main_interface()
     gtk_box_pack_start(GTK_BOX(hbox2), decline_button, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox2, TRUE, FALSE, 5);	
     
+    
     gtk_box_pack_start(GTK_BOX(vbox1), scrolls, TRUE, FALSE, 5);
-    hbox01 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    gtk_box_pack_start(GTK_BOX(hbox01), message_entry, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(hbox01), send_button, TRUE, FALSE, 5);
+    hbox01 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(hbox01), message_entry, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox01), send_button, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(vbox1), hbox01, TRUE, FALSE, 5);
-
+	
     
     gtk_box_pack_start(GTK_BOX(vbox2), vbox, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox2), vbox1, TRUE, FALSE, 5);
@@ -337,7 +337,7 @@ void main_interface()
 
     g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
-
+    gtk_widget_set_size_request(message_entry, gtk_widget_get_allocated_width(scrolls)-gtk_widget_get_allocated_width(send_button), 20);
     gtk_main();
     gtk_widget_destroy(window);
     pjsua_destroy();  
