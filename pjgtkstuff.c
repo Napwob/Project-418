@@ -212,7 +212,7 @@ void registration_interface()
     password_label = gtk_label_new("Введите пароль:");
     password_entry = gtk_entry_new();
     gtk_entry_set_visibility(GTK_ENTRY(password_entry), FALSE);
-
+    gtk_entry_set_invisible_char(GTK_ENTRY(password_entry), '*');
     // Создаем кнопки
     set_button = gtk_button_new_with_label("Регистрация");
     del_button = gtk_button_new_with_label("Очистить");
@@ -274,8 +274,13 @@ void main_interface()
     sip_label = gtk_label_new("SIP-адрес:");
     call_label = gtk_label_new("Нет звонков");
     sip_entry = gtk_entry_new();
+    //gtk_entry_set_placeholder_text(GTK_ENTRY(sip_entry),"");
     message_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(message_entry),"Напишите сообщение...");
+    //GIcon *icon= g_file_icon_new(g_file_new_for_path("resources/send.jpg")); 
+    //gtk_entry_set_icon_from_gicon(GTK_ENTRY(message_entry),GTK_ENTRY_ICON_SECONDARY, icon);
     gtk_widget_set_size_request(message_entry, 250, 20);
+    
     
     // Создаем кнопки
     ancall_button = gtk_button_new_with_label("");
