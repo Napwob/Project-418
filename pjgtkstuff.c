@@ -30,15 +30,70 @@ GtkTextBuffer *chat_buff;
 GtkWidget *sip_label, *sip_entry, *chat_window, *chat_view;
 GtkWidget *call_label, *message_entry;
 GtkWidget *ancall_button, *decline_button, *send_button;
+GtkWidget *list;
+GtkTreeSelection *selection; 
 
 char message_cash[10000];
-
+char all_abonents[100][30];
+int number_of_abonents=0;
 pjsua_acc_id acc_id;	
 pjsua_call_id call_to_answer;
 pj_status_t stop_ring();
 #define THIS_FILE "Sip Client"
 
 //MAIN INTERFACE STUFF
+
+enum {
+	LIST_ITEM = 0,
+	N_COLUMNS
+};
+
+void init_list(GtkWidget *list) {
+
+	GtkCellRenderer *renderer;
+	GtkTreeViewColumn *column;
+	GtkListStore *store;
+
+	renderer = gtk_cell_renderer_text_new ();
+	column = gtk_tree_view_column_new_with_attributes("List Items",
+		  renderer, "text", LIST_ITEM, NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+
+	store = gtk_list_store_new(N_COLUMNS, G_TYPE_STRING);
+
+	gtk_tree_view_set_model(GTK_TREE_VIEW(list), 
+	    GTK_TREE_MODEL(store));
+
+	g_object_unref(store);
+}
+
+
+
+void add_to_list(GtkWidget *list, const gchar *str) {
+    
+	GtkListStore *store;
+	GtkTreeIter iter;
+
+	store = GTK_LIST_STORE(gtk_tree_view_get_model (GTK_TREE_VIEW(list)));
+	
+	gtk_list_store_append(store, &iter);
+	gtk_list_store_set(store, &iter, LIST_ITEM, str, -1);
+}
+
+void check_and_add(char* abonent)
+{	
+	for(int i=0;i<number_of_abonents+1;i++)
+	{	
+		if(strcmp(all_abonents[i],abonent) == 0)
+		{
+			return;
+		}
+	}
+	strcpy(all_abonents[number_of_abonents],abonent);
+	number_of_abonents++;	
+	add_to_list(list, abonent);	
+}
+
 void set_button_clicked(GtkWidget *button, gpointer data)
 {
 	sprintf(server_ip,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) ip_entry)));
@@ -103,7 +158,7 @@ void send_button_clicked(GtkWidget *button, gpointer data)
 }
 
 void ancall_button_clicked(GtkWidget *button, gpointer data)
-{
+{	
 	if(tube_button_mode == 0)
 	{
 		//puts("Can make call");
@@ -145,11 +200,13 @@ void ancall_button_clicked(GtkWidget *button, gpointer data)
 			{
 				//printf("%s\n",ct);
 				gtk_label_set_text((GtkLabel*)call_label,result_char);
+				check_and_add(ct);
 				call_someone(server_ip, ct);	
 				return;	
 			}			
 		} 
 		gtk_label_set_text((GtkLabel*)call_label,result_char);
+		check_and_add(sip_call);
 		call_someone(server_ip, sip_call);
 	}
 	if(tube_button_mode == 1)
@@ -182,6 +239,19 @@ void del_button_clicked(GtkWidget *button, gpointer data)
 	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) ip_entry), "");
 	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) login_entry), "");
 	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) password_entry), "");
+}
+
+void pick_abonent(GtkWidget *widget) 
+{ 
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gchar *value;
+
+	if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &iter)) {
+		gtk_tree_model_get(model, &iter, LIST_ITEM, &value,  -1);
+		gtk_entry_set_text(GTK_ENTRY(sip_entry), value);
+		g_free(value);
+	}
 }
 
 void registration_interface()
@@ -271,6 +341,12 @@ void main_interface()
     // Создаем ярлык и поле ввода логина
     sip_label = gtk_label_new("SIP-адрес:");
     call_label = gtk_label_new("Нет звонков");
+    list = gtk_tree_view_new();
+    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), FALSE);
+    init_list(list);
+    gtk_widget_set_size_request(list, 180, 200);
+    selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(list));
+    g_signal_connect(selection, "changed", G_CALLBACK(pick_abonent), sip_entry);
     sip_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(sip_entry),"Введите абонента...");
     //gtk_entry_set_placeholder_text(GTK_ENTRY(sip_entry),"");
@@ -278,7 +354,6 @@ void main_interface()
     gtk_entry_set_placeholder_text(GTK_ENTRY(message_entry),"Напишите сообщение...");
     //GIcon *icon= g_file_icon_new(g_file_new_for_path("resources/send.jpg")); 
     //gtk_entry_set_icon_from_gicon(GTK_ENTRY(message_entry),GTK_ENTRY_ICON_SECONDARY, icon);
-    
     
     // Создаем кнопки
     ancall_button = gtk_button_new_with_label("");
@@ -293,7 +368,7 @@ void main_interface()
     gtk_text_view_set_editable(GTK_TEXT_VIEW(chat_view),FALSE);
     gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW(chat_view), FALSE);
     scrolls = gtk_scrolled_window_new(NULL, NULL); 
-    gtk_widget_set_size_request(scrolls, 320, 200);
+    gtk_widget_set_size_request(scrolls, 288, 180);
     chat_buff = gtk_text_view_get_buffer(GTK_TEXT_VIEW(chat_view));
     gtk_container_add(GTK_CONTAINER(scrolls), chat_view);
     
@@ -316,7 +391,11 @@ void main_interface()
     
     
     hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    gtk_box_pack_start(GTK_BOX(hbox1), call_label, TRUE, FALSE, 5);
+    GtkWidget *hbox4;
+    hbox4 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_box_pack_start(GTK_BOX(hbox4), call_label, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox4), list, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox1), hbox4, TRUE, FALSE, 5);
     
     
     hbox2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
