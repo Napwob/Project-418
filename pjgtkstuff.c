@@ -253,8 +253,6 @@ void registration_interface()
 void main_interface()
 {	
     GtkWidget *window;
-    GtkWidget *hbox0, *hbox01, *hbox1, *hbox2, *hbox3;
-    GtkWidget *vbox,*vbox1,*vbox2;
     GtkWidget *scrolls;
     gtk_init (NULL, NULL);
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -274,6 +272,7 @@ void main_interface()
     sip_label = gtk_label_new("SIP-адрес:");
     call_label = gtk_label_new("Нет звонков");
     sip_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(sip_entry),"Введите абонента...");
     //gtk_entry_set_placeholder_text(GTK_ENTRY(sip_entry),"");
     message_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(message_entry),"Напишите сообщение...");
@@ -294,7 +293,7 @@ void main_interface()
     gtk_text_view_set_editable(GTK_TEXT_VIEW(chat_view),FALSE);
     gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW(chat_view), FALSE);
     scrolls = gtk_scrolled_window_new(NULL, NULL); 
-    gtk_widget_set_size_request(scrolls, 350, 200);
+    gtk_widget_set_size_request(scrolls, 320, 200);
     chat_buff = gtk_text_view_get_buffer(GTK_TEXT_VIEW(chat_view));
     gtk_container_add(GTK_CONTAINER(scrolls), chat_view);
     
@@ -302,38 +301,38 @@ void main_interface()
     g_signal_connect(GTK_BUTTON(ancall_button), "clicked", G_CALLBACK(ancall_button_clicked), login_entry);
     g_signal_connect(GTK_BUTTON(decline_button), "clicked", G_CALLBACK(decline_button_clicked), password_entry);
     g_signal_connect(GTK_BUTTON(send_button), "clicked", G_CALLBACK(send_button_clicked), password_entry);
-	
-    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    vbox1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    vbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
+    GtkWidget *hbox0, *hbox1, *hbox2, *hbox3;
+    GtkWidget *vbox;
+    
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    
     hbox0 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_label, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_entry, TRUE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(hbox0), ancall_button, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox0), decline_button, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), hbox0, TRUE, FALSE, 5);
-	
-
+    
+    
     hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox1), call_label, TRUE, FALSE, 5);
+    
+    
+    hbox2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_box_pack_start(GTK_BOX(hbox2), scrolls, TRUE, FALSE, 0);
+    
+    hbox3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(hbox3), message_entry, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox3), send_button, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox2), hbox3, TRUE, FALSE, 0);
+    
+    gtk_box_pack_start(GTK_BOX(hbox1), hbox2, TRUE, FALSE, 5);
+    
     gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, FALSE, 5);
-	
-    hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_box_pack_start(GTK_BOX(hbox2), ancall_button, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(hbox2), decline_button, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), hbox2, TRUE, FALSE, 5);	
     
     
-    gtk_box_pack_start(GTK_BOX(vbox1), scrolls, TRUE, FALSE, 5);
-    hbox01 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_box_pack_start(GTK_BOX(hbox01), message_entry, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(hbox01), send_button, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(vbox1), hbox01, TRUE, FALSE, 5);
-	
-    
-    gtk_box_pack_start(GTK_BOX(vbox2), vbox, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox2), vbox1, TRUE, FALSE, 5);
-
-    gtk_container_add(GTK_CONTAINER(window), vbox2);
+    gtk_container_add(GTK_CONTAINER(window), vbox);
 
     g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
