@@ -15,3 +15,5 @@ sip_client: main.c
 
 clean:
 	rm -f main.o sip_client
+ch:
+	rm -R cache

@@ -5,7 +5,9 @@
 #include <gtk/gtk.h>
 #include <pjmedia.h>
 #include "pjgtkstuff.h"
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 typedef struct _ringtone_port_info {
     int ring_on;
@@ -36,6 +38,7 @@ GtkTreeSelection *selection;
 char message_cash[10000];
 char all_abonents[100][30];
 int number_of_abonents=0;
+
 pjsua_acc_id acc_id;	
 pjsua_call_id call_to_answer;
 pj_status_t stop_ring();
@@ -276,6 +279,37 @@ void pick_abonent(GtkWidget *widget)
 	}
 }
 
+void save_cache()
+{
+	//char message_cash[10000];
+	//char all_abonents[100][30];
+	//int number_of_abonents=0;
+	//char server_ip[15] = "192.168.56.102";
+	//char user_name[20] = "6000";
+	//char password[30] = "PASSWORD";
+	struct stat st = {0};
+	if (stat("cache", &st) == -1) {
+    		mkdir("cache", 0700);
+	}
+	FILE *fp;
+	char filepath[20] = {};
+	strcat(filepath,"cache/");
+	strcat(filepath,user_name);
+	if ((fp = fopen(filepath, "wb+")) == NULL)
+  	{
+    		printf("Cache save failed");
+    		return;
+  	}
+  	fprintf(fp,"%s\n",server_ip);
+  	fprintf(fp,"%s\n",user_name);
+  	fprintf(fp,"%s\n",password);
+  	fprintf(fp,"%d\n",number_of_abonents);
+  	for(int i=0;i<number_of_abonents;i++)
+  		fprintf(fp,"%s\n",all_abonents[i]);
+  	fprintf(fp,"%s\n",message_cash);
+  	fclose(fp);
+}
+
 void registration_interface()
 {
     GtkWidget *window;
@@ -450,7 +484,8 @@ void main_interface()
     gtk_widget_set_size_request(message_entry, gtk_widget_get_allocated_width(scrolls)-gtk_widget_get_allocated_width(send_button), 20);
     gtk_main();
     gtk_widget_destroy(window);
-    pjsua_destroy();  
+    pjsua_destroy(); 
+    save_cache(); 
     exit(0);
 }
 
