@@ -29,7 +29,7 @@ GtkTextBuffer *chat_buff;
 
 GtkWidget *sip_label, *sip_entry, *chat_window, *chat_view;
 GtkWidget *call_label, *message_entry;
-GtkWidget *ancall_button, *decline_button, *send_button;
+GtkWidget *ancall_button, *decline_button, *send_button, *add_button, *delete_button;
 GtkWidget *list;
 GtkTreeSelection *selection; 
 
@@ -78,6 +78,23 @@ void add_to_list(GtkWidget *list, const gchar *str) {
 	
 	gtk_list_store_append(store, &iter);
 	gtk_list_store_set(store, &iter, LIST_ITEM, str, -1);
+}
+
+void delete_button_clicked(GtkWidget *widget, gpointer selection) {
+    
+	GtkListStore *store;
+	GtkTreeModel *model;
+	GtkTreeIter  iter;
+
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(list)));
+ 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(list));
+
+	if (gtk_tree_model_get_iter_first(model, &iter) == FALSE)
+		return;
+		
+	if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(selection), &model, &iter)) 
+    		gtk_list_store_remove(store, &iter);
+
 }
 
 void check_and_add(char* abonent)
@@ -157,6 +174,13 @@ void send_button_clicked(GtkWidget *button, gpointer data)
 	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) message_entry), "");
 }
 
+void add_button_clicked(GtkWidget *button, gpointer data)
+{
+	char sip_call[50];
+	sprintf(sip_call,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) sip_entry)));
+	check_and_add(sip_call);
+}
+
 void ancall_button_clicked(GtkWidget *button, gpointer data)
 {	
 	if(tube_button_mode == 0)
@@ -200,13 +224,11 @@ void ancall_button_clicked(GtkWidget *button, gpointer data)
 			{
 				//printf("%s\n",ct);
 				gtk_label_set_text((GtkLabel*)call_label,result_char);
-				check_and_add(ct);
 				call_someone(server_ip, ct);	
 				return;	
 			}			
 		} 
 		gtk_label_set_text((GtkLabel*)call_label,result_char);
-		check_and_add(sip_call);
 		call_someone(server_ip, sip_call);
 	}
 	if(tube_button_mode == 1)
@@ -347,9 +369,9 @@ void main_interface()
     gtk_widget_set_size_request(list, 180, 200);
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(list));
     g_signal_connect(selection, "changed", G_CALLBACK(pick_abonent), sip_entry);
+    
     sip_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(sip_entry),"Введите абонента...");
-    //gtk_entry_set_placeholder_text(GTK_ENTRY(sip_entry),"");
     message_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(message_entry),"Напишите сообщение...");
     //GIcon *icon= g_file_icon_new(g_file_new_for_path("resources/send.jpg")); 
@@ -358,10 +380,13 @@ void main_interface()
     // Создаем кнопки
     ancall_button = gtk_button_new_with_label("");
     gtk_button_set_image (GTK_BUTTON(ancall_button),(GtkWidget *)green); 
+    //gtk_button_set_relief(GTK_BUTTON(ancall_button),GTK_RELIEF_NONE);
     decline_button = gtk_button_new_with_label("");
     gtk_button_set_image (GTK_BUTTON(decline_button),(GtkWidget *)red); 
     send_button = gtk_button_new_with_label("");
     gtk_button_set_image (GTK_BUTTON(send_button),(GtkWidget *)send); 
+    add_button = gtk_button_new_with_label("Добавить");
+    delete_button = gtk_button_new_with_label("Удалить");
     
     //создаем окно чата
     chat_view = gtk_text_view_new();
@@ -372,35 +397,42 @@ void main_interface()
     chat_buff = gtk_text_view_get_buffer(GTK_TEXT_VIEW(chat_view));
     gtk_container_add(GTK_CONTAINER(scrolls), chat_view);
     
+    
+    
     // Задаем функции кнопок
     g_signal_connect(GTK_BUTTON(ancall_button), "clicked", G_CALLBACK(ancall_button_clicked), login_entry);
     g_signal_connect(GTK_BUTTON(decline_button), "clicked", G_CALLBACK(decline_button_clicked), password_entry);
     g_signal_connect(GTK_BUTTON(send_button), "clicked", G_CALLBACK(send_button_clicked), password_entry);
+     g_signal_connect(GTK_BUTTON(delete_button), "clicked", G_CALLBACK(delete_button_clicked), selection);
+    g_signal_connect(GTK_BUTTON(add_button), "clicked", G_CALLBACK(add_button_clicked), password_entry);
 
     GtkWidget *hbox0, *hbox1, *hbox2, *hbox3;
     GtkWidget *vbox;
     
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     
-    hbox0 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    hbox0 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_label, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), sip_entry, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox0), ancall_button, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox0), decline_button, TRUE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), hbox0, TRUE, FALSE, 5);
     
-    
-    hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     GtkWidget *hbox4;
     hbox4 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-    gtk_box_pack_start(GTK_BOX(hbox4), call_label, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox4), list, TRUE, FALSE, 5);
+    GtkWidget *hbox40;
+    hbox40 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_start(GTK_BOX(hbox40), delete_button, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox40), add_button, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox4), hbox40, TRUE, FALSE, 0);
+    //gtk_box_pack_start(GTK_BOX(hbox4), call_label, TRUE, FALSE, 5); think about it later
+    
+    hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox1), hbox4, TRUE, FALSE, 5);
-    
-    
+     
     hbox2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_box_pack_start(GTK_BOX(hbox2), hbox0, TRUE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(hbox2), scrolls, TRUE, FALSE, 0);
-    
     hbox3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(hbox3), message_entry, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox3), send_button, FALSE, FALSE, 0);
