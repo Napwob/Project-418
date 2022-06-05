@@ -33,7 +33,7 @@ GtkTextBuffer *chat_buff;
 GtkWidget *sip_label, *sip_entry, *chat_window, *chat_view;
 GtkWidget *call_label, *message_entry;
 GtkWidget *ancall_button, *decline_button, *send_button, *add_button, *delete_button;
-GtkWidget *list;
+GtkWidget *list, *list_scroll;
 GtkTreeSelection *selection; 
 
 char message_cash[10000] = {};
@@ -488,6 +488,9 @@ void main_interface()
     sip_label = gtk_label_new("SIP-адрес:");
     call_label = gtk_label_new("Нет звонков");
     gtk_widget_set_size_request(list, 180, 200);
+    
+    list_scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_widget_set_size_request(list_scroll, 200, 200);
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(list));
     g_signal_connect(selection, "changed", G_CALLBACK(pick_abonent), sip_entry);
     
@@ -540,7 +543,11 @@ void main_interface()
     
     GtkWidget *hbox4;
     hbox4 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-    gtk_box_pack_start(GTK_BOX(hbox4), list, TRUE, FALSE, 5);
+    gtk_container_add(GTK_CONTAINER (list_scroll),list);
+   // gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(list_scroll),list);
+    gtk_box_pack_start(GTK_BOX(hbox4), list_scroll, TRUE, FALSE, 5);
+    //gtk_box_pack_start(GTK_BOX(hbox4), list, TRUE, FALSE, 0);
+    
     GtkWidget *hbox40;
     hbox40 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(hbox40), delete_button, TRUE, FALSE, 0);
