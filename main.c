@@ -10,6 +10,7 @@
 int main()
 {	
 	//registration_interface();
+	check_and_load_cache();
 	pj_initialisation();
 	main_interface();
 	pjsua_destroy();  

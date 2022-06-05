@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 
 typedef struct _ringtone_port_info {
     int ring_on;
@@ -17,9 +18,9 @@ typedef struct _ringtone_port_info {
 } ringtone_port_info_t;
 
 static ringtone_port_info_t ringtone_port_info;
-char server_ip[15] = "192.168.56.102";
-char user_name[20] = "6000";
-char password[30] = "PASSWORD";
+char server_ip[15];// = "192.168.56.102";
+char user_name[20];// = "6000";
+char password[30];// = "PASSWORD";
 int tube_button_mode = 0;//0 for call 1 for accept 2 for nothing
 int decline_button_mode = 1;//0 for decline 1 for nothing
 
@@ -35,8 +36,8 @@ GtkWidget *ancall_button, *decline_button, *send_button, *add_button, *delete_bu
 GtkWidget *list;
 GtkTreeSelection *selection; 
 
-char message_cash[10000];
-char all_abonents[100][30];
+char message_cash[10000] = {};
+char all_abonents[100][30] = {};
 int number_of_abonents=0;
 
 pjsua_acc_id acc_id;	
@@ -279,6 +280,88 @@ void pick_abonent(GtkWidget *widget)
 	}
 }
 
+void check_and_load_cache()
+{
+	gtk_init (NULL, NULL);
+  	list = gtk_tree_view_new();
+    	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), FALSE);
+    	init_list(list);
+	struct stat st = {0};
+	if (stat("cache", &st) == -1) {
+		registration_interface();
+    		return;
+	}
+	
+	DIR *dir;
+	FILE *fp;
+	struct dirent *A;
+	char *cash_file;
+	char filepath[20] = {};
+ 	if ((dir=opendir("cache"))!=NULL)
+ 	{
+	    	//while ((A=readdir(dir)) != NULL)
+	    	//{
+	      		//printf("%s\n", A->d_name);
+	    	//}
+		A=readdir(dir);
+		cash_file = A->d_name;
+		if(strcmp(cash_file,"..") == 0)
+		{
+			registration_interface();
+    			return;
+		}
+     		closedir(dir);
+ 	}
+ 	strcat(filepath,"cache/");
+	strcat(filepath,cash_file);
+ 	if ((fp = fopen(filepath, "r")) == NULL)
+  	{
+    		printf("Cache load failed");
+    		registration_interface();
+    		return;
+  	}
+  	
+  	if(fscanf(fp,"%s%s%s%d",server_ip,user_name,password,&number_of_abonents)!=4)
+  	{
+  		registration_interface();
+    		return;	
+  	}
+  	//fscanf(fp,"%s",user_name);
+  	//fscanf(fp,"%s",password);
+  	//fscanf(fp,"%d",&number_of_abonents);
+  	
+  	for(int i=0;i<number_of_abonents;i++)
+  	{
+  		if(fscanf(fp,"%s",all_abonents[i])!=1)
+  		{
+  			return;
+  		}
+  		add_to_list(list, all_abonents[i]);
+  	}
+  	while(1)
+  	{
+  		char message[100]={};
+  		char name[20]={};
+  		
+  		if(fscanf(fp,"%s%s",name,message)!=2)
+  		{
+  			registration_interface();
+    			return;
+  		}
+  		if(strcmp(name,"#") == 0 || strcmp(message,"#") == 0)
+  			break;
+  		strcat(message_cash,name);
+		strcat(message_cash," ");
+		strcat(message_cash,message);
+		strcat(message_cash,"\n");
+		gtk_text_buffer_set_text(chat_buff, message_cash, -1);
+  	}
+  	gtk_text_buffer_set_text(chat_buff, message_cash, -1);
+  	//fscanf(fp,"#");
+  	fclose(fp);
+	
+}
+
 void save_cache()
 {
 	//char message_cash[10000];
@@ -306,8 +389,15 @@ void save_cache()
   	fprintf(fp,"%d\n",number_of_abonents);
   	for(int i=0;i<number_of_abonents;i++)
   		fprintf(fp,"%s\n",all_abonents[i]);
-  	fprintf(fp,"%s\n",message_cash);
+  	fprintf(fp,"EB");
+  	fprintf(fp,"%s",message_cash);
+  	fprintf(fp,"# @");
   	fclose(fp);
+}
+
+void close_prog()
+{
+	exit(0);
 }
 
 void registration_interface()
@@ -397,9 +487,6 @@ void main_interface()
     // Создаем ярлык и поле ввода логина
     sip_label = gtk_label_new("SIP-адрес:");
     call_label = gtk_label_new("Нет звонков");
-    list = gtk_tree_view_new();
-    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(list), FALSE);
-    init_list(list);
     gtk_widget_set_size_request(list, 180, 200);
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(list));
     g_signal_connect(selection, "changed", G_CALLBACK(pick_abonent), sip_entry);
@@ -480,6 +567,7 @@ void main_interface()
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
     g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    gtk_text_buffer_set_text(chat_buff, message_cash, -1);
     gtk_widget_show_all(window);
     gtk_widget_set_size_request(message_entry, gtk_widget_get_allocated_width(scrolls)-gtk_widget_get_allocated_width(send_button), 20);
     gtk_main();
