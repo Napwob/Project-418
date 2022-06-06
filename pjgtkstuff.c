@@ -24,7 +24,7 @@ char user_name[20];// = "6000";
 char password[30];// = "PASSWORD";
 int tube_button_mode = 0;//0 for call 1 for accept 2 for nothing
 int decline_button_mode = 1;//0 for decline 1 for nothing
-
+short was_answered = 0;
 GtkWidget *ip_label, *ip_entry;
 GtkWidget *login_label, *login_entry;
 GtkWidget *password_label, *password_entry;
@@ -241,6 +241,7 @@ void ancall_button_clicked(GtkWidget *button, gpointer data)
 		stop_ring();
 		pjsua_call_answer(call_to_answer, 200, NULL, NULL);
 		tube_button_mode = 2;
+		was_answered = 1; 
 	}
 	if(tube_button_mode == 2)
 	{
@@ -254,6 +255,7 @@ void decline_button_clicked(GtkWidget *button, gpointer data)
 	if(decline_button_mode == 0)
 	{
 		//puts("Can do nothing");
+		was_answered = 1;
 		stop_ring();
 		pjsua_call_hangup_all();
 		decline_button_mode = 1;
@@ -715,17 +717,28 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
 	char result_string[40] = "Звонок: ";
 	strcat(result_string, who_is_calling);
 	
+	
 	if (ci.state == PJSIP_INV_STATE_CONFIRMED) { 
 		stop_ring();
 		tube_button_mode = 2;
-		gtk_label_set_text((GtkLabel*)call_label,result_string);	    	
+		gtk_label_set_text((GtkLabel*)call_label,result_string);	   	
 	}
 
 	if (ci.state == PJSIP_INV_STATE_DISCONNECTED) { 
 		stop_ring();
+		puts("Call disconected");
 		tube_button_mode = 0;
 		decline_button_mode = 1;
-		gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");    	
+		if(was_answered == 1)
+		{
+			was_answered = 0;
+			//place for unaswered calls code
+		}
+			else
+		{
+			//place for unaswered calls code
+		}
+		//gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");    	
 	}
 }
 
