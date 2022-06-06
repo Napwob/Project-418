@@ -59,8 +59,7 @@ void init_list(GtkWidget *list) {
 	GtkListStore *store;
 
 	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes("List Items",
-		  renderer, "text", LIST_ITEM, NULL);
+	column = gtk_tree_view_column_new_with_attributes("List Items",renderer, "text", LIST_ITEM, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
 
 	store = gtk_list_store_new(N_COLUMNS, G_TYPE_STRING);
@@ -356,7 +355,6 @@ void check_and_load_cache()
 		strcat(message_cash,"\n");
 		gtk_text_buffer_set_text(chat_buff, message_cash, -1);
   	}
-  	gtk_text_buffer_set_text(chat_buff, message_cash, -1);
   	//fscanf(fp,"#");
   	fclose(fp);
 	
@@ -389,7 +387,6 @@ void save_cache()
   	fprintf(fp,"%d\n",number_of_abonents);
   	for(int i=0;i<number_of_abonents;i++)
   		fprintf(fp,"%s\n",all_abonents[i]);
-  	fprintf(fp,"EB");
   	fprintf(fp,"%s",message_cash);
   	fprintf(fp,"# @");
   	fclose(fp);
