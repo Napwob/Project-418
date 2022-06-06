@@ -18,6 +18,7 @@ typedef struct _ringtone_port_info {
 } ringtone_port_info_t;
 
 static ringtone_port_info_t ringtone_port_info;
+static ringtone_port_info_t sms_port_info;
 char server_ip[15];// = "192.168.56.102";
 char user_name[20];// = "6000";
 char password[30];// = "PASSWORD";
@@ -583,6 +584,22 @@ void main_interface()
 
 
 //MAIN FUNCTIONALITY STUFF
+void sms_sound() {
+    pj_status_t status;
+
+    status = pjsua_conf_connect(sms_port_info.ring_slot, 0);
+    sms_port_info.ring_on = 1;
+    if (status != PJ_SUCCESS)
+        pjsua_perror(THIS_FILE, "Error connecting sms port", status);
+        
+    sleep(1);
+    
+    status = pjsua_conf_disconnect(sms_port_info.ring_slot, 0);
+    sms_port_info.ring_on = 0;
+    if (status != PJ_SUCCESS)
+        pjsua_perror(THIS_FILE, "Error disconnecting sms port", status);
+}
+
 static void on_pager(pjsua_call_id call_id, const pj_str_t *from, const pj_str_t *to, const pj_str_t *contact, const pj_str_t *mime_type, const pj_str_t *body)
 {
 	//printf("MESSAGE from %.*s: %.*s\n", (int)from->slen, from->ptr, (int)body->slen, body->ptr);	
@@ -594,7 +611,7 @@ static void on_pager(pjsua_call_id call_id, const pj_str_t *from, const pj_str_t
 	strncpy(who, who, c);
 	who[c] = '\0';
 	sprintf(message, "%.*s",(int)body->slen, body->ptr);
-	
+	sms_sound();
 	design_message(who,message);
 	
 	return;
@@ -844,29 +861,40 @@ pj_status_t account_registration()
 static void init_ringtone_player() {
 
     int file_slot;
-    pj_pool_t *pool;
-    pjmedia_port *file_port;
+    int file_slot_sms;
+    pj_pool_t *pool,*poolsms;
+    pjmedia_port *file_port,*file_port_sms;
     pj_status_t status;
 
     pool = pjsua_pool_create("wav", 4000, 4000);
+    poolsms = pjsua_pool_create("wav", 4000, 4000);
 
     status = pjmedia_wav_player_port_create(pool, "resources/telephone.wav", 0, 0, 0, &file_port);
-
+    if (status != PJ_SUCCESS) {
+        pjsua_perror(THIS_FILE, "Error creating WAV player port", status);
+        return;
+    }
+    
+    status = pjmedia_wav_player_port_create(pool, "resources/message.wav", 0, 0, 0, &file_port_sms);
     if (status != PJ_SUCCESS) {
         pjsua_perror(THIS_FILE, "Error creating WAV player port", status);
         return;
     }
 
     status = pjsua_conf_add_port(pool, file_port, &file_slot);
-
+    if (status != PJ_SUCCESS) {
+        pjsua_perror(THIS_FILE, "Error adding port to conference", status);
+        return;
+    }
+    
+    status = pjsua_conf_add_port(poolsms, file_port_sms, &file_slot_sms);
     if (status != PJ_SUCCESS) {
         pjsua_perror(THIS_FILE, "Error adding port to conference", status);
         return;
     }
 
-    ringtone_port_info = (ringtone_port_info_t) { .ring_on = 0, 
-        .ring_slot = file_slot, .ring_port = file_port , .pool = pool };
-
+    ringtone_port_info = (ringtone_port_info_t) { .ring_on = 0, .ring_slot = file_slot, .ring_port = file_port , .pool = pool };
+    sms_port_info = (ringtone_port_info_t) { .ring_on = 0, .ring_slot = file_slot_sms, .ring_port = file_port_sms , .pool = poolsms };	
 }
 
 
