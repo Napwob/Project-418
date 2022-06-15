@@ -119,7 +119,11 @@ void check_and_add(char* abonent)
 void set_button_clicked(GtkWidget *button, gpointer data)
 {
 	sprintf(server_ip,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) ip_entry)));
+	if(strcmp(server_ip,"") == 0)
+		return;
 	sprintf(user_name,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) login_entry)));
+	if(strcmp(user_name,"") == 0)
+		return;
 	sprintf(password,"%s",gtk_entry_get_text(GTK_ENTRY((GtkWidget*) password_entry)));
 	gtk_main_quit();
 }
@@ -461,14 +465,17 @@ void registration_interface()
     // Создаем ярлык и поле ввода логина
     ip_label = gtk_label_new("Введите IP:          ");
     ip_entry = gtk_entry_new();
-
+    gtk_entry_set_placeholder_text(GTK_ENTRY(ip_entry),"192.168.1.1");
+    
     // Создаем ярлык и поле ввода логина
     login_label = gtk_label_new("Введите логин:  ");
     login_entry = gtk_entry_new();
-
+    gtk_entry_set_placeholder_text(GTK_ENTRY(login_entry),"John");
+    
     // Создаем ярлык и поле ввода пароля
     password_label = gtk_label_new("Введите пароль:");
     password_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(password_entry),"****");
     gtk_entry_set_visibility(GTK_ENTRY(password_entry), FALSE);
     gtk_entry_set_invisible_char(GTK_ENTRY(password_entry), '*');
     // Создаем кнопки
