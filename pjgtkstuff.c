@@ -17,6 +17,7 @@ typedef struct _ringtone_port_info {
     pj_pool_t *pool;
 } ringtone_port_info_t;
 
+GtkWidget *window_main;
 static ringtone_port_info_t ringtone_port_info;
 static ringtone_port_info_t sms_port_info;
 char server_ip[15];// = "192.168.56.102";
@@ -37,7 +38,7 @@ GtkWidget *ancall_button, *decline_button, *send_button, *add_button, *delete_bu
 GtkWidget *list, *list_scroll;
 GtkTreeSelection *selection; 
 
-char message_cash[10000] = {};
+char message_cash[100][10000] = {};
 char all_abonents[100][30] = {};
 int number_of_abonents=0;
 
@@ -123,13 +124,36 @@ void set_button_clicked(GtkWidget *button, gpointer data)
 	gtk_main_quit();
 }
 
-void design_message(char* user_name, char* message)
+void design_message(char* user_name, char* message,char* for_whom)
 {
-	strcat(message_cash,user_name);
-	strcat(message_cash,": ");
-	strcat(message_cash,message);
-	strcat(message_cash,"\n");
-	gtk_text_buffer_set_text(chat_buff, message_cash, -1);	
+	int write_for_whom=-1;
+	if(strcmp(for_whom, " ") == 0)
+	{
+		for(int i=0;i<number_of_abonents+1;i++)
+		{	
+			if(strcmp(all_abonents[i],user_name) == 0)
+			{
+				write_for_whom = i;
+			} 
+		}
+	} 
+		else
+	{
+		for(int i=0;i<number_of_abonents+1;i++)
+		{	
+			if(strcmp(all_abonents[i],for_whom) == 0)
+			{
+				write_for_whom = i;
+			} 
+		}
+	}
+	if(write_for_whom == -1)
+		return;
+	strcat(message_cash[write_for_whom],user_name);
+	strcat(message_cash[write_for_whom],": ");
+	strcat(message_cash[write_for_whom],message);
+	strcat(message_cash[write_for_whom],"\n");
+	gtk_text_buffer_set_text(chat_buff, message_cash[write_for_whom], -1);	
 }
 
 void send_button_clicked(GtkWidget *button, gpointer data)
@@ -173,7 +197,7 @@ void send_button_clicked(GtkWidget *button, gpointer data)
 	pj_str_t text = pj_str(message);
 	pjsua_im_send(acc_id, &who, NULL, &text, NULL, NULL);	
 	
-	design_message(user_name, message);
+	design_message(user_name, message, for_whom);
 	
 	gtk_entry_set_text(GTK_ENTRY((GtkWidget*) message_entry), "");
 }
@@ -227,11 +251,13 @@ void ancall_button_clicked(GtkWidget *button, gpointer data)
 				else 
 			{
 				//printf("%s\n",ct);
+				gtk_entry_set_text(GTK_ENTRY(sip_entry), result_char);
 				gtk_label_set_text((GtkLabel*)call_label,result_char);
 				call_someone(server_ip, ct);	
 				return;	
 			}			
 		} 
+		gtk_entry_set_text(GTK_ENTRY(sip_entry), result_char);
 		gtk_label_set_text((GtkLabel*)call_label,result_char);
 		call_someone(server_ip, sip_call);
 	}
@@ -259,6 +285,7 @@ void decline_button_clicked(GtkWidget *button, gpointer data)
 		stop_ring();
 		pjsua_call_hangup_all();
 		decline_button_mode = 1;
+		gtk_entry_set_text(GTK_ENTRY(sip_entry), "");
 	}
 }
 
@@ -274,11 +301,22 @@ void pick_abonent(GtkWidget *widget)
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	gchar *value;
-
+	int number=-1;
 	if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &iter)) {
 		gtk_tree_model_get(model, &iter, LIST_ITEM, &value,  -1);
+		for(int i=0;i<number_of_abonents;i++)
+		{
+			if(strcmp(all_abonents[i],(char*)value) == 0)
+				number = i;
+		}
 		gtk_entry_set_text(GTK_ENTRY(sip_entry), value);
 		g_free(value);
+		if(number == -1)
+		{
+			return;
+		}
+		gtk_text_buffer_set_text(chat_buff, message_cash[number], -1);
+		
 	}
 }
 
@@ -340,24 +378,25 @@ void check_and_load_cache()
   		}
   		add_to_list(list, all_abonents[i]);
   	}
-  	while(1)
-  	{
-  		char message[100]={};
-  		char name[20]={};
-  		
-  		if(fscanf(fp,"%s%s",name,message)!=2)
-  		{
-  			registration_interface();
-    			return;
-  		}
-  		if(strcmp(name,"#") == 0 || strcmp(message,"#") == 0)
-  			break;
-  		strcat(message_cash,name);
-		strcat(message_cash," ");
-		strcat(message_cash,message);
-		strcat(message_cash,"\n");
-		gtk_text_buffer_set_text(chat_buff, message_cash, -1);
-  	}
+  	for(int i=0;i<number_of_abonents;i++)
+	  	while(1)
+	  	{
+	  		char message[100]={};
+	  		char name[20]={};
+	  		
+	  		if(fscanf(fp,"%s%s",name,message)!=2)
+	  		{
+	  			registration_interface();
+	    			return;
+	  		}
+	  		if(strcmp(name,"#") == 0 || strcmp(message,"#") == 0)
+	  			break;
+	  		strcat(message_cash[i],name);
+			strcat(message_cash[i]," ");
+			strcat(message_cash[i],message);
+			strcat(message_cash[i],"\n");
+			gtk_text_buffer_set_text(chat_buff, message_cash[i], -1);
+	  	}
   	//fscanf(fp,"#");
   	fclose(fp);
 	
@@ -390,8 +429,11 @@ void save_cache()
   	fprintf(fp,"%d\n",number_of_abonents);
   	for(int i=0;i<number_of_abonents;i++)
   		fprintf(fp,"%s\n",all_abonents[i]);
-  	fprintf(fp,"%s",message_cash);
-  	fprintf(fp,"# @");
+  	for(int i=0; i<number_of_abonents;i++)
+  	{
+  		fprintf(fp,"%s",message_cash[i]);
+  		fprintf(fp,"# @\n");
+  	}
   	fclose(fp);
 }
 
@@ -468,10 +510,10 @@ void registration_interface()
 
 void main_interface()
 {	
-    GtkWidget *window;
+    GtkWidget *window_main;
     GtkWidget *scrolls;
     gtk_init (NULL, NULL);
-    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    window_main = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     
     GtkImage *green,*red,*send;
     green = (GtkImage *)gtk_image_new_from_file("resources/green.jpg");
@@ -480,9 +522,9 @@ void main_interface()
     GtkSettings *default_settings = gtk_settings_get_default();
     g_object_set(default_settings, "gtk-button-images", TRUE, NULL);
     
-    gtk_window_set_title (GTK_WINDOW (window), "SIPHONE");
-    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-    gtk_window_set_default_size(GTK_WINDOW(window), 300, 200);
+    gtk_window_set_title (GTK_WINDOW (window_main), "SIPHONE");
+    gtk_window_set_position(GTK_WINDOW(window_main), GTK_WIN_POS_CENTER);
+    gtk_window_set_default_size(GTK_WINDOW(window_main), 300, 200);
     
     // Создаем ярлык и поле ввода логина
     sip_label = gtk_label_new("SIP-адрес:");
@@ -571,14 +613,14 @@ void main_interface()
     gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, FALSE, 5);
     
     
-    gtk_container_add(GTK_CONTAINER(window), vbox);
+    gtk_container_add(GTK_CONTAINER(window_main), vbox);
 
-    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
-    gtk_text_buffer_set_text(chat_buff, message_cash, -1);
-    gtk_widget_show_all(window);
+    g_signal_connect(G_OBJECT(window_main), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    gtk_text_buffer_set_text(chat_buff, " ", -1);
+    gtk_widget_show_all(window_main);
     gtk_widget_set_size_request(message_entry, gtk_widget_get_allocated_width(scrolls)-gtk_widget_get_allocated_width(send_button), 20);
     gtk_main();
-    gtk_widget_destroy(window);
+    gtk_widget_destroy(window_main);
     pjsua_destroy(); 
     save_cache(); 
     exit(0);
@@ -614,7 +656,7 @@ static void on_pager(pjsua_call_id call_id, const pj_str_t *from, const pj_str_t
 	who[c] = '\0';
 	sprintf(message, "%.*s",(int)body->slen, body->ptr);
 	sms_sound();
-	design_message(who,message);
+	design_message(who,message," ");
 	
 	return;
 }
@@ -677,10 +719,11 @@ static void on_incoming_call(pjsua_acc_id acc_id, pjsua_call_id call_id, pjsip_r
 	int c = strchr(who_is_calling, '@') - who_is_calling;
 	strncpy(who_is_calling, who_is_calling, c);
 	who_is_calling[c] = '\0';
-	char result_string[40] = "Входящий вызов: ";
+	char result_string[40] = "Входящий: ";
 	strcat(result_string, who_is_calling);
 	
 	gtk_label_set_text((GtkLabel*)call_label,result_string);
+	gtk_entry_set_text(GTK_ENTRY(sip_entry), result_string);
 	tube_button_mode = 1;
 	decline_button_mode = 0;
 	start_ring();
