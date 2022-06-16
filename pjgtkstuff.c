@@ -388,7 +388,12 @@ void check_and_load_cache()
 	  		char message[100]={};
 	  		char name[20]={};
 	  		
-	  		if(fscanf(fp,"%s%s",name,message)!=2)
+	  		if(fscanf(fp,"%s",name)!=1)
+	  		{
+	  			registration_interface();
+	    			return;
+	  		}
+	  		if(fgets(message, 100, fp)==NULL)
 	  		{
 	  			registration_interface();
 	    			return;
@@ -396,9 +401,7 @@ void check_and_load_cache()
 	  		if(strcmp(name,"#") == 0 || strcmp(message,"#") == 0)
 	  			break;
 	  		strcat(message_cash[i],name);
-			strcat(message_cash[i]," ");
 			strcat(message_cash[i],message);
-			strcat(message_cash[i],"\n");
 			gtk_text_buffer_set_text(chat_buff, message_cash[i], -1);
 	  	}
   	//fscanf(fp,"#");
@@ -786,7 +789,20 @@ static void on_call_state(pjsua_call_id call_id, pjsip_event *e)
 		}
 			else
 		{
-			//place for unaswered calls code
+			int number=-1;
+			for(int i=0;i<number_of_abonents;i++)
+			{
+				if(strcmp(all_abonents[i],who_is_calling) == 0)
+					number = i;
+			}
+			
+			if(number == -1)
+			{
+				return;
+			}
+			strcat(message_cash[number],"Пропущенный вызов от данного абонента");
+			gtk_text_buffer_set_text(chat_buff, message_cash[number], -1);
+			
 		}
 		//gtk_label_set_text((GtkLabel*)call_label,"Нет звонков");    	
 	}
